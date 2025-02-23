@@ -1,10 +1,7 @@
-#ifndef LINALG_HPP
-#define LINALG_HPP
+#pragma once
 
 #include <array>
 #include <iostream>
-
-#define ASSERT_SIZE_EQUAL(x, y) static_assert(x == y, "Vector sizes do not match")
 
 template <typename T, size_t N>
 class Vector {
@@ -24,6 +21,21 @@ public:
         }
     }
 
+    template <size_t M>
+    Vector(const Vector<T, M>& other) {
+        for (size_t i = 0; i < std::min(N, M); ++i) {
+            data[i] = other[i];
+        }
+        for (size_t i = M; i < N; ++i) {
+            data[i] = T {};
+        }
+    }
+
+    template <size_t M>
+    operator Vector<T, M>() const {
+        return Vector<T, M>(*this);
+    }
+
     T& operator[](size_t index) {
         return data[index];
     }
@@ -33,7 +45,7 @@ public:
     }
 
     Vector operator+(const Vector& other) const {
-        ASSERT_SIZE_EQUAL(N, other.size());
+        if (N != other.size()) throw std::runtime_error("Vector sizes do not match");
         Vector result;
         for (size_t i = 0; i < N; ++i) {
             result[i] = data[i] + other[i];
@@ -42,7 +54,7 @@ public:
     }
 
     Vector operator-(const Vector& other) const {
-        ASSERT_SIZE_EQUAL(N, other.size());
+        if (N != other.size()) throw std::runtime_error("Vector sizes do not match");
         Vector result;
         for (size_t i = 0; i < N; ++i) {
             result[i] = data[i] - other[i];
@@ -58,8 +70,16 @@ public:
         return result;
     }
 
+    Vector operator/(const T& scalar) const {
+        Vector result;
+        for (size_t i = 0; i < N; ++i) {
+            result[i] = data[i] / scalar;
+        }
+        return result;
+    }
+
     T dot(const Vector& other) const {
-        ASSERT_SIZE_EQUAL(N, other.size());
+        if (N != other.size()) throw std::runtime_error("Vector sizes do not match");
         T result = 0;
         for (size_t i = 0; i < N; ++i) {
             result += data[i] * other[i];
@@ -88,7 +108,7 @@ private:
 
 public:
     Matrix() {
-        data.fill(Vector<T, M>());
+        data = Vector<Vector<T, M>, N>();
     }
 
     Matrix(std::initializer_list<std::initializer_list<T>> values) {
@@ -124,5 +144,3 @@ public:
         std::cout << "]" << std::endl;
     }
 };
-
-#endif // LINALG_HPP

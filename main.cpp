@@ -1,7 +1,7 @@
 #include <SDL2/SDL.h>
 #include <stdlib.h>
 #include <iostream>
-#include "Engine.hpp"
+#include "engine.hpp"
 
 int main() {
     SDL_Event event;

@@ -1,22 +1,26 @@
-#include "Engine.hpp"
-
 #include <algorithm>
+#include "engine.hpp"
 
-#define BOUNDED(x, y, w, h) ((x) >= 0 && (x) < (w) && (y) >= 0 && (y) < (h))
+#define BOUNDED(x, y) ((x) >= 0 && (x) < (width) && (y) >= 0 && (y) < (height))
 #define RGBA(r, g, b, a) ((r & 0xFF) << 24 | (g & 0xFF) << 16 | (b & 0xFF) << 8 | (a & 0xFF))
 #define R(c) ((c >> 24) & 0xFF)
 #define G(c) ((c >> 16) & 0xFF)
 #define B(c) ((c >> 8) & 0xFF)
 #define A(c) (c & 0xFF)
 
-Engine::Engine(int width, int height, uint32_t color) {
+Engine::Engine(int windowWidth, int windowHeight, uint32_t color) {
+    width = windowWidth;
+    height = windowHeight;
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(width, height, 0, &window, &renderer);
     SDL_SetRenderDrawColor(renderer, R(color), G(color), B(color), A(color));
     SDL_RenderClear(renderer);
+    depthBuffer.resize(width * height);
+    camera = new Camera(90, width, height, 0.1, 10);
+    setup();
 }
 
-void Engine::drawLine(const Vector<int, 2>& v1, const Vector<int, 2>& v2) {
+void Engine::drawLine(const Vector<float, 3>& v1, const Vector<float, 3>& v2) {
     int x0 = v1[0], y0 = v1[1];
     int x1 = v2[0], y1 = v2[1];
     int dx = abs(x1 - x0);
@@ -42,26 +46,49 @@ void Engine::drawLine(const Vector<int, 2>& v1, const Vector<int, 2>& v2) {
     }
 }
 
-void Engine::drawTriangle(const Vector<int, 2>& v1, const Vector<int, 2>& v2, const Vector<int, 2>& v3) {
+void Engine::drawTriangle(const Vector<float, 3>& v1, const Vector<float, 3>& v2, const Vector<float, 3>& v3) {
     drawLine(v1, v2);
     drawLine(v2, v3);
     drawLine(v3, v1);
 }
 
-void Engine::fillTriangle(const Vector<int, 2>& v1, const Vector<int, 2>& v2, const Vector<int, 2>& v3) {
+void Engine::fillTriangle(const Vector<float, 3>& v1, const Vector<float, 3>& v2, const Vector<float, 3>& v3) {
     // Scanline algorithm or barycentric coordinates
     // Placeholder implementation
-    drawTriangle(v1, v2, v3);  // Just draw the outline for now
+}
+
+void Engine::setup() {
+    std::vector<Vector<float, 4>> vertices = {
+        { -1.0f, -1.0f, 0.0f, 1.0f },
+        {  1.0f, -1.0f, 0.0f, 1.0f },
+        {  1.0f,  1.0f, 0.0f, 1.0f },
+        { -1.0f,  1.0f, 0.0f, 1.0f }
+    };
+
+    std::vector<Vector<float, 2>> textures;
+    std::vector<Vector<float, 4>> normals;
+    std::vector<Matrix<u_int32_t, 3, 3>> triangles = {
+        { { 0, 1, 2 } },
+        { { 2, 3, 0 } }
+    };
+
+    Matrix<float, 4, 4> transform;
+    transform[0][0] = 1.0f;
+    transform[1][1] = 1.0f;
+    transform[2][2] = 1.0f;
+    transform[3][3] = 1.0f;
+    transform[2][3] = 3.0f;
+
+    meshes.push_back(std::make_unique<Mesh>(vertices, textures, normals, triangles, transform));
 }
 
 void Engine::update() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
-
-    const Vector<int, 2> v1 = {100, 100};
-    const Vector<int, 2> v2 = {200, 200};
-    const Vector<int, 2> v3 = {300, 100};
-    fillTriangle(v1, v2, v3);
+    
+    for (auto& mesh : meshes) {
+        mesh->drawWireFrame(camera, this);
+    }
 
     SDL_RenderPresent(renderer);
 }
