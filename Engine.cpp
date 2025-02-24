@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "engine.hpp"
+#include "mesh.hpp"
 
 #define BOUNDED(x, y) ((x) >= 0 && (x) < (width) && (y) >= 0 && (y) < (height))
 #define RGBA(r, g, b, a) ((r & 0xFF) << 24 | (g & 0xFF) << 16 | (b & 0xFF) << 8 | (a & 0xFF))
@@ -58,36 +59,22 @@ void Engine::fillTriangle(const Vector<float, 3>& v1, const Vector<float, 3>& v2
 }
 
 void Engine::setup() {
-    std::vector<Vector<float, 4>> vertices = {
-        { -1.0f, -1.0f, 0.0f, 1.0f },
-        {  1.0f, -1.0f, 0.0f, 1.0f },
-        {  1.0f,  1.0f, 0.0f, 1.0f },
-        { -1.0f,  1.0f, 0.0f, 1.0f }
-    };
-
-    std::vector<Vector<float, 2>> textures;
-    std::vector<Vector<float, 4>> normals;
-    std::vector<Matrix<u_int32_t, 3, 3>> triangles = {
-        { { 0, 1, 2 } },
-        { { 2, 3, 0 } }
-    };
-
     Matrix<float, 4, 4> transform;
-    transform[0][0] = 1.0f;
-    transform[1][1] = 1.0f;
-    transform[2][2] = 1.0f;
-    transform[3][3] = 1.0f;
-    transform[2][3] = 3.0f;
+    Vector<float, 3> position = { 0.0f, 0.0f, 5.0f };
+    transform.set_position(position);
 
-    meshes.push_back(std::make_unique<Mesh>(vertices, textures, normals, triangles, transform));
+    std::unique_ptr<Mesh> grass_block = std::make_unique<Mesh>("Assets/Grass_Block/Grass_Block.obj", "Assets/Grass_Block/Grass_Block.mtl");
+    grass_block->setTransform(transform);
+    meshes.push_back(std::move(grass_block));
 }
 
 void Engine::update() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
-    
+
     for (auto& mesh : meshes) {
         mesh->drawWireFrame(camera, this);
+        mesh->setRotation((mesh->getRotation() + Vector<float, 3>({ 0.01f, 0.01f, 0.01f })) % (2*M_PI));
     }
 
     SDL_RenderPresent(renderer);

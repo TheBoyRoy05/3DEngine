@@ -23,8 +23,8 @@ class Camera {
     };
 
     Vector<float, 4> screenToNDC(Vector<float, 4> v) {
-        v[0] = (1.0f + v[0]) * width / 2.0f;
-        v[1] = (1.0f - v[1]) * height / 2.0f;
+        v[0] = (width + v[0] * std::min(width, height)) / 2.0f;
+        v[1] = (height - v[1] * std::min(width, height)) / 2.0f;
         return v;
     }
 };
