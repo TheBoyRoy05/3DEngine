@@ -90,6 +90,23 @@ public:
         return result;
     }
 
+    Vector<T, 3> cross(const Vector<T, 3>& other) const {
+        static_assert(N == 3, "Cross product is only defined for 3D vectors");
+        Vector<T, 3> result;
+        result[0] = data[1] * other[2] - data[2] * other[1];
+        result[1] = data[2] * other[0] - data[0] * other[2];
+        result[2] = data[0] * other[1] - data[1] * other[0];
+        return result;
+    }
+
+    T norm() {
+        T total = 0;
+        for (size_t i = 0; i < N; ++i) {
+            total += data[i] * data[i];
+        }
+        return sqrt(total);
+    }
+
     void print() const {
         std::cout << "(";
         for (size_t i = 0; i < N; ++i) {
@@ -108,6 +125,25 @@ template <typename T, size_t N, size_t M>
 class Matrix {
 private:
     Vector<Vector<T, M>, N> data;
+
+    template <size_t NN = N, size_t MM = M>
+    std::enable_if_t<(NN > 1 && MM > 1), Matrix<T, NN - 1, MM - 1>>
+    cofactor(size_t row, size_t col) const {
+        Matrix<T, NN - 1, MM - 1> result;
+        size_t r = 0, c = 0;
+
+        for (size_t i = 0; i < NN; ++i) {
+            if (i == row) continue;
+            c = 0;
+            for (size_t j = 0; j < MM; ++j) {
+                if (j == col) continue;
+                result[r][c] = data[i][j];
+                ++c;
+            }
+            ++r;
+        }
+        return result;
+    }
 
 public:
     Matrix() {
@@ -151,6 +187,18 @@ public:
         Vector<T, N> result;
         for (size_t i = 0; i < N; ++i) {
             result[i] = data[i].dot(other);
+        }
+        return result;
+    }
+
+    T determinant() const {
+        static_assert(N == M, "Determinant is only defined for square matrices");
+        if constexpr (N == 1) return data[0][0];
+        T result = 0;
+        for (size_t col = 0; col < N; ++col) {
+            T sign = (col % 2 == 0) ? 1 : -1;
+            if constexpr (N > 1)
+                result += sign * data[0][col] * cofactor(0, col).determinant();
         }
         return result;
     }

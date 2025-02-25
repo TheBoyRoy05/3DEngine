@@ -14,7 +14,7 @@ class Engine {
     SDL_Renderer* renderer = NULL;
 
     std::vector<std::unique_ptr<Mesh>> meshes;
-    std::vector<float> depthBuffer {};
+    std::vector<float> depth_buffer {};
     int width, height;
     Camera* camera;
     
