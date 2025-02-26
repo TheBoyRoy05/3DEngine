@@ -44,6 +44,8 @@ class Mesh {
     Vector<float, 3> getPosition();
     void setCenter(Vector<float, 3> center);
     Vector<float, 3> getCenterOfMass();
+    void scale(float scale);
+    void scale(Vector<float, 3> scale);
 
     void parseOBJ(const char* filename);
     void parseMTL(const char* filename);

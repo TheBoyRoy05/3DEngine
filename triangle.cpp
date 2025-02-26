@@ -6,21 +6,52 @@
 #define B(c) ((c >> 8) & 0xFF)
 #define A(c) (c & 0xFF)
 
+/**
+ * Computes the z-component of the cross product of the two edges of a triangle.
+ *
+ * Given a triangle with vertices v1, v2, and v3, this function computes (v2 - v1) x (v3 - v1). 
+ * The result is the z-component representing double the signed area of the triangle.
+ *
+ * @param v1 The first vertex of the triangle.
+ * @param v2 The second vertex of the triangle.
+ * @param v3 The third vertex of the triangle.
+ * @return The z-component of the cross product.
+ */
 float Triangle::edge_cross(const Vector<float, 2>& v1, const Vector<float, 2>& v2, const Vector<float, 2>& v3) {
     Vector<float, 2> edge1 = v2 - v1;
     Vector<float, 2> edge2 = v3 - v1;
     return edge1[0] * edge2[1] - edge1[1] * edge2[0];
 }
 
+/**
+ * Determines if the edge between the two input vectors is a top or left edge.
+ *
+ * @param v1 The first vertex of the edge.
+ * @param v2 The second vertex of the edge.
+ * @return true if the edge is a top or left edge, otherwise false.
+ */
 bool Triangle::is_top_left(const Vector<float, 2>& v1, const Vector<float, 2>& v2) {
     return (v1[1] > v2[1]) || (v1[1] == v2[1] && v1[0] < v2[0]);
 }
 
+/**
+ * Sets the color of a single pixel on the screen.
+ *
+ * @param x The x-coordinate of the pixel.
+ * @param y The y-coordinate of the pixel.
+ * @param color The color of the pixel as an RGBA value.
+ */
 void Triangle::drawPixel(int x, int y, uint32_t color) {
     SDL_SetRenderDrawColor(engine.getRenderer(), R(color), G(color), B(color), A(color));
     SDL_RenderDrawPoint(engine.getRenderer(), x, y);
 }
 
+/**
+ * Draws a line between two points on the screen using Bresenham's line algorithm.
+ *
+ * @param v1 The first point on the line.
+ * @param v2 The second point on the line.
+ */
 void Triangle::drawLine(const Vector<float, 3>& v1, const Vector<float, 3>& v2) {
     int x0 = v1[0], y0 = v1[1];
     int x1 = v2[0], y1 = v2[1];
@@ -46,6 +77,9 @@ void Triangle::drawLine(const Vector<float, 3>& v1, const Vector<float, 3>& v2) 
     }
 }
 
+/**
+ * Draws the triangle by drawing a line between each pair of its vertices.
+ */
 void Triangle::draw() {
     drawLine(v1, v2);
     drawLine(v2, v3);

@@ -7,6 +7,17 @@
 
 #include "triangle.hpp"
 
+/**
+ * @brief Construct a new Mesh object
+ *
+ * @param vertices A list of the mesh's vertices in 4D space (x, y, z, w)
+ * @param textures A list of the mesh's texture coordinates in 2D space (u, v)
+ * @param normals A list of the mesh's normals in 4D space (x, y, z, w)
+ * @param triangles A list of triangles, each as a 3x3 matrix of vertex indices
+ * @param transform The mesh's transform matrix
+ *
+ * Sets the mesh's center to its center of mass
+ */
 Mesh::Mesh(std::vector<Vector<float, 4>> vertices, std::vector<Vector<float, 2>> textures,
            std::vector<Vector<float, 4>> normals, std::vector<Matrix<u_int32_t, 3, 3>> triangles,
            Matrix<float, 4, 4> transform) {
@@ -18,12 +29,34 @@ Mesh::Mesh(std::vector<Vector<float, 4>> vertices, std::vector<Vector<float, 2>>
     this->setCenter(this->getCenterOfMass());
 }
 
+/**
+ * @brief Construct a new Mesh object
+ *
+ * @param objfilename The filename of the mesh's geometry (vertices, normals, and triangles)
+ * @param mtlfilename The filename of the mesh's materials
+ *
+ * Sets the mesh's center to its center of mass
+ */
 Mesh::Mesh(const char* objfilename, const char* mtlfilename) {
     parseOBJ(objfilename);
     parseMTL(mtlfilename);
     this->setCenter(this->getCenterOfMass());
 }
 
+/**
+ * @brief Parses an OBJ file to load the mesh's geometry.
+ *
+ * This function reads an OBJ file to extract vertex, texture coordinate, and normal data,
+ * as well as triangle face definitions. It processes lines with specific prefixes:
+ * - "v" for vertices, storing them in the vertices vector as 4D points with w = 1.0.
+ * - "vt" for texture coordinates, storing them in the textures vector as 2D points.
+ * - "vn" for vertex normals, storing them in the normals vector as 4D points with w = 0.0.
+ * - "f" for faces, interpreting them as triangles or quadrilaterals and storing vertex,
+ *   texture, and normal indices in the triangles vector.
+ *
+ * @param filename The path to the OBJ file to be parsed.
+ * @throws std::runtime_error If the file cannot be opened.
+ */
 void Mesh::parseOBJ(const char* filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -86,6 +119,16 @@ void Mesh::parseOBJ(const char* filename) {
     file.close();
 }
 
+/**
+ * @brief Parses a Wavefront MTL file and populates the Mesh's material data.
+ *
+ * The function reads the contents of the file line-by-line and parses the
+ * keywords and values. It populates the Mesh's material data with the parsed
+ * values. The function also saves the last material read from the file and
+ * sets it as the Mesh's current material.
+ *
+ * @param filename The path to the MTL file to be parsed.
+ */
 void Mesh::parseMTL(const char* filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -126,6 +169,20 @@ void Mesh::parseMTL(const char* filename) {
     file.close();
 }
 
+/**
+ * @brief Draws the Mesh to the screen using the given Camera.
+ *
+ * The function renders each triangle in the Mesh's list of triangles.
+ * It first transforms the triangle's vertices using the Mesh's current
+ * transformation matrix. Then, it projects the transformed vertices using
+ * the given Camera's projection matrix. Next, it converts the projected
+ * vertices to screen coordinates using the Camera's screenToNDC function.
+ * Finally, it renders the triangle to the screen using either the Triangle's
+ * draw or fill functions depending on the wireFrame parameter.
+ *
+ * @param camera The Camera to use for rendering.
+ * @param wireFrame Whether to draw the Mesh in wireframe (true) or filled (false).
+ */
 void Mesh::draw(Camera* camera, bool wireFrame) {
     for (const auto& tri : triangles) {
         Vector<float, 4> v1 = vertices[tri[0][0]];
@@ -146,31 +203,82 @@ void Mesh::draw(Camera* camera, bool wireFrame) {
     }
 }
 
+/**
+ * @brief Sets the transformation matrix for the Mesh.
+ *
+ * This function sets the transformation matrix to the given value.
+ * The transformation matrix is used to transform the Mesh's vertices
+ * before projecting them to the screen.
+ *
+ * @param transform The transformation matrix to set.
+ */
 void Mesh::setTransform(Matrix<float, 4, 4> transform) {
     this->transform = transform;
 }
 
+
+/**
+ * @brief Retrieves the transformation matrix of the Mesh.
+ *
+ * This function returns the current transformation matrix used to
+ * transform the Mesh's vertices before projecting them to the screen.
+ *
+ * @return The transformation matrix of the Mesh.
+ */
 Matrix<float, 4, 4> Mesh::getTransform() {
     return this->transform;
 }
 
+/**
+ * @brief Sets the rotation of the Mesh.
+ *
+ * This function sets the rotation of the Mesh by changing the transformation matrix.
+ * The rotation is given as Euler angles in the order of ZYX (yaw, pitch, roll).
+ *
+ * @param rotation The new rotation of the Mesh as Euler angles in radians.
+ */
 void Mesh::setRotation(Vector<float, 3> rotation) {
     this->transform.set_rotation3(rotation);
     this->rotation = rotation;
 }
 
+/**
+ * @brief Retrieves the current rotation of the Mesh as Euler angles in radians.
+ * @return The current rotation of the Mesh as Euler angles in radians.
+ */
 Vector<float, 3> Mesh::getRotation() {
     return this->rotation;
 }
 
+/**
+ * @brief Sets the position of the Mesh.
+ *
+ * This function updates the transformation matrix to set the position
+ * of the Mesh in 3D space using the given position vector.
+ *
+ * @param position The new position of the Mesh in 3D space.
+ */
 void Mesh::setPosition(Vector<float, 3> position) {
     this->transform.set_position(position);
 }
 
+/**
+ * @brief Retrieves the current position of the Mesh in 3D space.
+ * @return The current position of the Mesh in 3D space.
+ */
 Vector<float, 3> Mesh::getPosition() {
     return this->transform.get_position();
 }
 
+/**
+ * @brief Sets the center of the Mesh to the specified position.
+ *
+ * This function adjusts all vertices of the Mesh so that the Mesh's center
+ * aligns with the given center position. It effectively translates the Mesh
+ * in 3D space by subtracting the provided center from each vertex.
+ *
+ * @param center The new center position of the Mesh in 3D space.
+ */
 void Mesh::setCenter(Vector<float, 3> center) {
     Vector<float, 4> center4 = Vector<float, 4>(center);
     for (auto& vertex : vertices) {
@@ -178,6 +286,14 @@ void Mesh::setCenter(Vector<float, 3> center) {
     }
 }
 
+/**
+ * @brief Calculates the center of mass of the Mesh in 3D space.
+ *
+ * The center of mass is calculated by summing all vertices and dividing by the number of vertices.
+ * This is the average position of all vertices in the Mesh.
+ *
+ * @return The center of mass of the Mesh in 3D space.
+ */
 Vector<float, 3> Mesh::getCenterOfMass() {
     Vector<float, 3> center = {0, 0, 0};
     for (auto& vertex : vertices) {
@@ -186,12 +302,58 @@ Vector<float, 3> Mesh::getCenterOfMass() {
     return center / vertices.size();
 }
 
+/**
+ * @brief Scales the Mesh uniformly by a scalar value.
+ *
+ * This function multiplies each vertex of the Mesh by the given scalar,
+ * effectively scaling the Mesh uniformly in all dimensions.
+ *
+ * @param scale The scalar value to uniformly scale the Mesh.
+ */
+void Mesh::scale(float scale) {
+    for (auto& vertex : vertices) {
+        vertex = vertex * scale;
+    }
+}
+
+/**
+ * @brief Scales the Mesh by a vector of scale factors.
+ *
+ * This function multiplies each vertex of the Mesh by the given vector of scale factors,
+ * effectively scaling the Mesh non-uniformly in the different dimensions.
+ *
+ * @param scale The vector of scale factors to scale the Mesh.
+ */
+void Mesh::scale(Vector<float, 3> scale) {
+    for (auto& vertex : vertices) {
+        vertex = vertex * scale;
+    }
+}
+
+/**
+ * @brief Sets the current material of the Mesh by name.
+ *
+ * This function updates the Mesh's current material to the specified material name,
+ * if it exists in the materials map. If the material is not found, the current
+ * material remains unchanged.
+ *
+ * @param materialName The name of the material to set as the current material.
+ */
+
 void Mesh::setMaterial(const std::string& materialName) {
     if (materials.find(materialName) != materials.end()) {
         currentMaterial = materialName;
     }
 }
 
+/**
+ * @brief Retrieves the current material of the Mesh.
+ *
+ * This function returns the current material stored in the materials map,
+ * based on the Mesh's current material name.
+ *
+ * @return The current material of the Mesh.
+ */
 Material Mesh::getMaterial() {
     return materials[currentMaterial];
 }

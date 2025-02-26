@@ -11,6 +11,17 @@
 #define B(c) ((c >> 8) & 0xFF)
 #define A(c) (c & 0xFF)
 
+/**
+ * Initializes an instance of the Engine class.
+ *
+ * @param width The width of the SDL window to be created.
+ * @param height The height of the SDL window to be created.
+ * @param color The color of the SDL window to be created, as an RGBA value.
+ *
+ * This constructor initializes the SDL library and creates a window
+ * and a renderer for the engine. It also initializes the depth buffer
+ * for the engine.
+ */
 Engine::Engine(int width, int height, uint32_t color) {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(width, height, 0, &window, &renderer);
@@ -24,6 +35,10 @@ Engine& Engine::getInstance(int width, int height, uint32_t color) {
     return instance;
 }
 
+/**
+ * Sets up the initial scene for the engine by configuring the camera
+ * and loading a mesh object.
+ */
 void Engine::setup() {
     camera = new Camera(90, 0.1f, 10.0f);
 
@@ -36,6 +51,10 @@ void Engine::setup() {
     meshes.push_back(std::move(grass_block));
 }
 
+/**
+ * Clears the current frame by resetting the depth buffer and filling the
+ * renderer with a black color.
+ */
 void Engine::clear() {
     int width, height;
     SDL_GetWindowSize(window, &width, &height);
@@ -44,6 +63,10 @@ void Engine::clear() {
     SDL_RenderClear(renderer);
 }
 
+/**
+ * Updates the engine's state by clearing the current frame, rendering all meshes, 
+ * and presenting the rendered frame.
+ */
 void Engine::update() {
     clear();
     for (auto& mesh : meshes) {
@@ -54,6 +77,12 @@ void Engine::update() {
     SDL_RenderPresent(renderer);
 }
 
+/**
+ * Destroys the engine's window, renderer, and quits the SDL library.
+ * This function should be called when the engine is no longer needed.
+ *
+ * @return EXIT_SUCCESS (0)
+ */
 int Engine::quit() {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

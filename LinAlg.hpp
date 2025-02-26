@@ -1,19 +1,30 @@
 #pragma once
 
 #include <array>
-#include <iostream>
 #include <initializer_list>
+#include <iostream>
 
 template <typename T, size_t N>
 class Vector {
-private:
+    private:
     std::array<T, N> data;
 
-public:
+    public:
+    /**
+     * Default constructor for the Vector class.
+     * Initializes all elements to the default value of the specified type T.
+     */
     Vector() {
-        data.fill(T {});
+        data.fill(T{});
     }
 
+    /**
+     * Constructs a Vector from an initializer list of values.
+     * Initializes the Vector with the provided values up to the size of the Vector.
+     * If the list contains more elements than the Vector's capacity, the excess elements are ignored.
+     *
+     * @param values The initializer list of values to initialize the Vector.
+     */
     Vector(std::initializer_list<T> values) {
         size_t i = 0;
         for (const auto& value : values) {
@@ -22,10 +33,18 @@ public:
         }
     }
 
+    /**
+     * Constructs a Vector from a different-sized Vector.
+     * Copies the elements of the other Vector up to the size of the destination Vector.
+     * If the other Vector is smaller than the destination Vector,
+     * the rest of the elements are initialized to the default value of type T.
+     *
+     * @param other The other Vector to copy from.
+     */
     template <size_t M>
     Vector(const Vector<T, M>& other) {
         for (size_t i = 0; i < N; ++i) {
-            data[i] = i < M ? other[i] : T {};
+            data[i] = i < M ? other[i] : T{};
         }
     }
 
@@ -42,6 +61,16 @@ public:
         return data[index];
     }
 
+    /**
+     * Adds the elements of this Vector and another Vector element-wise.
+     *
+     * The length of the result Vector is the minimum of the two input Vector's sizes.
+     * If the two Vectors are of different sizes, the rest of the elements
+     * of the longer Vector are ignored.
+     *
+     * @param other The other Vector to add element-wise.
+     * @return A new Vector containing the element-wise sum of the two input Vectors.
+     */
     Vector operator+(const Vector& other) const {
         Vector result;
         for (size_t i = 0; i < std::min(N, other.size()); ++i) {
@@ -50,6 +79,16 @@ public:
         return result;
     }
 
+    /**
+     * Subtracts the elements of this Vector and another Vector element-wise.
+     *
+     * The length of the result Vector is the minimum of the two input Vector's sizes.
+     * If the two Vectors are of different sizes, the rest of the elements
+     * of the longer Vector are ignored.
+     *
+     * @param other The other Vector to subtract element-wise.
+     * @return A new Vector containing the element-wise difference of the two input Vectors.
+     */
     Vector operator-(const Vector& other) const {
         Vector result;
         for (size_t i = 0; i < std::min(N, other.size()); ++i) {
@@ -58,6 +97,13 @@ public:
         return result;
     }
 
+    /**
+     * Scales this Vector by a scalar value.
+     * Multiplies the elements of this Vector with the provided scalar value.
+     *
+     * @param scalar The scalar value to multiply this Vector with.
+     * @return A new Vector containing the scaled values of the input Vector.
+     */
     Vector operator*(const T& scalar) const {
         Vector result;
         for (size_t i = 0; i < N; ++i) {
@@ -66,6 +112,31 @@ public:
         return result;
     }
 
+    /**
+     * Component-wise multiplication of this Vector with another Vector.
+     *
+     * The length of the result Vector is the minimum of the two input Vector's sizes.
+     * If the two Vectors are of different sizes, the rest of the elements
+     * of the longer Vector are ignored.
+     *
+     * @param other The other Vector to perform component-wise multiplication with.
+     * @return A new Vector containing the component-wise product of the two input Vectors.
+     */
+    Vector operator*(const Vector& other) const {
+        Vector result;
+        for (size_t i = 0; i < std::min(N, other.size()); ++i) {
+            result[i] = data[i] * other[i];
+        }
+        return result;
+    }
+
+    /**
+     * Divides the elements of this Vector by a scalar value.
+     * Divides the elements of this Vector with the provided scalar value.
+     *
+     * @param scalar The scalar value to divide this Vector with.
+     * @return A new Vector containing the divided values of the input Vector.
+     */
     Vector operator/(const T& scalar) const {
         Vector result;
         for (size_t i = 0; i < N; ++i) {
@@ -74,6 +145,12 @@ public:
         return result;
     }
 
+    /**
+     * Computes the remainder of dividing the elements of this Vector with a scalar value.
+     *
+     * @param scalar The scalar value to divide this Vector with.
+     * @return A new Vector containing the remainder of the division of the input Vector with the scalar value.
+     */
     Vector operator%(const T& scalar) const {
         Vector result;
         for (size_t i = 0; i < N; ++i) {
@@ -82,6 +159,16 @@ public:
         return result;
     }
 
+    /**
+     * Computes the dot product of this Vector and another Vector.
+     *
+     * The dot product is the sum of the products of the corresponding elements of the two input Vectors.
+     * If the two Vectors are of different sizes, the rest of the elements
+     * of the longer Vector are ignored.
+     *
+     * @param other The other Vector to compute the dot product with.
+     * @return The dot product of the two input Vectors.
+     */
     T dot(const Vector& other) const {
         T result = 0;
         for (size_t i = 0; i < std::min(N, other.size()); ++i) {
@@ -90,6 +177,16 @@ public:
         return result;
     }
 
+    /**
+     * Computes the cross product of this Vector and another Vector.
+     *
+     * The cross product is a binary operation on two 3D vectors in a three-dimensional space.
+     * It results in a new vector that is perpendicular to both of the input vectors.
+     *
+     * @param other The other Vector to compute the cross product with.
+     * @return A new Vector that is the cross product of the two input Vectors.
+     * @note This operation is only defined for 3D vectors.
+     */
     Vector<T, 3> cross(const Vector<T, 3>& other) const {
         static_assert(N == 3, "Cross product is only defined for 3D vectors");
         Vector<T, 3> result;
@@ -99,14 +196,24 @@ public:
         return result;
     }
 
-    T norm() {
+    /**
+     * Computes the Lp norm of this Vector.
+     *
+     * @param p The value of p for the Lp norm. Default value is 2.
+     * @return The Lp norm of the input Vector.
+     */
+    T norm(int p = 2) const {
         T total = 0;
         for (size_t i = 0; i < N; ++i) {
-            total += data[i] * data[i];
+            total += pow(data[i], p);
         }
         return sqrt(total);
     }
 
+    /**
+     * Prints the elements of this Vector to the standard output.
+     * The elements are printed in a comma-separated format enclosed in parentheses.
+     */
     void print() const {
         std::cout << "(";
         for (size_t i = 0; i < N; ++i) {
@@ -116,6 +223,12 @@ public:
         std::cout << ")" << std::endl;
     }
 
+    /**
+     * Returns the size of the Vector.
+     *
+     * The size of a Vector is the number of elements in the Vector.
+     * @return The size of the Vector.
+     */
     size_t size() const {
         return N;
     }
@@ -123,9 +236,20 @@ public:
 
 template <typename T, size_t N, size_t M>
 class Matrix {
-private:
+    private:
     Vector<Vector<T, M>, N> data;
 
+    /**
+     * Computes the cofactor matrix by removing the specified row and column.
+     *
+     * This function generates a new matrix that is the cofactor of the original matrix
+     * by excluding the specified row and column from the original matrix.
+     *
+     * @param row The index of the row to remove.
+     * @param col The index of the column to remove.
+     * @return A new matrix of size (N-1) x (M-1) that is the cofactor of the original matrix.
+     * @note This operation is only valid for matrices with dimensions greater than 1x1.
+     */
     template <size_t NN = N, size_t MM = M>
     std::enable_if_t<(NN > 1 && MM > 1), Matrix<T, NN - 1, MM - 1>>
     cofactor(size_t row, size_t col) const {
@@ -145,13 +269,28 @@ private:
         return result;
     }
 
-public:
+    public:
+    /**
+     * Constructs a new Matrix as the identity matrix.
+     *
+     * The identity matrix is a matrix with all elements on the main diagonal set to 1,
+     * and all other elements set to 0.
+     */
     Matrix() {
         for (size_t i = 0; i < std::min(N, M); ++i) {
             data[i][i] = static_cast<T>(1);
         }
     }
 
+    /**
+     * Constructs a Matrix from an initializer list of initializer lists.
+     * Initializes the Matrix with the provided rows of values up to the size of the Matrix.
+     * If the provided initializer list contains more rows than the Matrix's capacity,
+     * the excess rows are ignored.
+     *
+     * @param values The initializer list of initializer lists representing rows
+     *               to initialize the Matrix.
+     */
     Matrix(std::initializer_list<std::initializer_list<T>> values) {
         size_t i = 0;
         for (const auto& row : values) {
@@ -160,6 +299,15 @@ public:
         }
     }
 
+    /**
+     * Constructs a Matrix from another Matrix.
+     *
+     * Copies the elements of the other Matrix up to the size of the destination Matrix.
+     * If the other Matrix is smaller than the destination Matrix,
+     * the rest of the elements are initialized to the default value of type T.
+     *
+     * @param other The other Matrix to copy from.
+     */
     template <size_t R, size_t S>
     Matrix(const Matrix<T, R, S>& other) {
         data = Vector<Vector<T, M>, N>();
@@ -183,6 +331,16 @@ public:
         return data[index];
     }
 
+    /**
+     * Performs matrix-vector multiplication on the given vector.
+     *
+     * This performs a dot product on each row of the matrix with the given vector,
+     * resulting in a new vector with the same number of elements as the matrix
+     * has rows.
+     *
+     * @param other The vector to multiply with this matrix.
+     * @return A new vector representing the result of the multiplication.
+     */
     Vector<T, N> operator*(const Vector<T, M>& other) const {
         Vector<T, N> result;
         for (size_t i = 0; i < N; ++i) {
@@ -191,6 +349,18 @@ public:
         return result;
     }
 
+    /**
+     * Computes the determinant of the matrix.
+     *
+     * The determinant is computed using the Laplace expansion. This is a recursive
+     * algorithm that expands the determinant about the first row, computing the
+     * determinant of the minor matrix for each element in the first row. The
+     * determinant is then computed as the sum of the products of each element in
+     * the first row with the determinant of its minor matrix.
+     *
+     * @return The determinant of the matrix.
+     * @note This function is only implemented for square matrices.
+     */
     T determinant() const {
         static_assert(N == M, "Determinant is only defined for square matrices");
         if constexpr (N == 1) return data[0][0];
@@ -203,6 +373,12 @@ public:
         return result;
     }
 
+    /**
+     * Prints the elements of this Matrix to the standard output.
+     * Each row of the matrix is printed on a new line, with the elements
+     * of the row printed in a comma-separated format enclosed in parentheses.
+     * The entire matrix is enclosed in square brackets.
+     */
     void print() const {
         std::cout << "[" << std::endl;
         for (size_t i = 0; i < N; ++i) {
@@ -212,20 +388,63 @@ public:
         std::cout << "]" << std::endl;
     }
 
-    void set_position(const Vector<T, N-1>& position) {
-        for (size_t i = 0; i < N-1; ++i) {
-            data[i][N-1] = position[i];
+    /**
+     * Sets the last column of the matrix to the given position for homogeneous coordinates.
+     *
+     * The elements of the given vector are copied into the last column of the
+     * matrix. This is used to set the position of a transformation matrix.
+     *
+     * @param position The vector to copy into the last column of the matrix.
+     */
+    void set_position(const Vector<T, N - 1>& position) {
+        for (size_t i = 0; i < N - 1; ++i) {
+            data[i][N - 1] = position[i];
         }
     }
 
-    Vector<T, N-1> get_position() const {
-        Vector<T, N-1> position;
-        for (size_t i = 0; i < N-1; ++i) {
-            position[i] = data[i][N-1];
+    /**
+     * Retrieves the position vector from the last column of the matrix.
+     *
+     * This function extracts the position vector by accessing the elements
+     * in the last column of the matrix, excluding the homogeneous coordinate.
+     * It is typically used to obtain the position of a transformation matrix
+     * in a 3D space.
+     *
+     * @return A vector representing the position extracted from the matrix.
+     */
+    Vector<T, N - 1> get_position() const {
+        Vector<T, N - 1> position;
+        for (size_t i = 0; i < N - 1; ++i) {
+            position[i] = data[i][N - 1];
         }
         return position;
     }
 
+    /**
+     * Sets the rotation of the matrix to the given Euler angles.
+     *
+     * This function sets the rotation of the matrix to the given Euler angles
+     * in the order of ZYX (yaw, pitch, roll). The matrix is multiplied by the
+     * rotation matrix corresponding to the given angles.
+     *
+     * The rotation matrix is calculated using the following formulas:
+     *
+     *   R = R_z * R_y * R_x
+     *
+     *   R_x = [ 1,  0,    0  ]
+     *         [ 0,  cx, -sx ]
+     *         [ 0,  sx,  cx ]
+     *
+     *   R_y = [ cy,  0,   sy ]
+     *         [ 0,  1,    0  ]
+     *         [-sy, 0,   cy ]
+     *
+     *   R_z = [ cz, -sz,  0  ]
+     *         [ sz,  cz,  0  ]
+     *         [ 0,   0,   1  ]
+     *
+     * @param angles The Euler angles to set the rotation to.
+     */
     void set_rotation3(const Vector<T, 3>& angles) {
         static_assert(N >= 3 && M >= 3, "Rotation matrix must be at least 3x3");
         T sx = sin(angles[0]), sy = sin(angles[1]), sz = sin(angles[2]);
