@@ -24,8 +24,8 @@ public:
 
     template <size_t M>
     Vector(const Vector<T, M>& other) {
-        for (size_t i = 0; i < std::min(N, M); ++i) {
-            data[i] = other[i];
+        for (size_t i = 0; i < N; ++i) {
+            data[i] = i < M ? other[i] : T {};
         }
     }
 

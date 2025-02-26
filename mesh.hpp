@@ -50,6 +50,5 @@ class Mesh {
     void setMaterial(const std::string& materialName);
     Material getMaterial();
 
-    void draw(Camera* camera, Engine* engine);
-    void drawWireFrame(Camera* camera, Engine* engine);
+    void draw(Camera* camera, bool wireFrame = false);
 };

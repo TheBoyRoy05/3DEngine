@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -g -Wall
 LIBS = -lSDL2 -lSDL2main
-SRCS = main.cpp engine.cpp mesh.cpp
+SRCS = main.cpp engine.cpp camera.cpp mesh.cpp triangle.cpp
 OBJS = $(SRCS:.cpp=.o)
 TARGET = main.exe
 

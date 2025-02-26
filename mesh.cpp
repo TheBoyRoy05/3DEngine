@@ -1,9 +1,11 @@
+#include "mesh.hpp"
+
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <sstream>
 
-#include "engine.hpp"
-#include "mesh.hpp"
+#include "triangle.hpp"
 
 Mesh::Mesh(std::vector<Vector<float, 4>> vertices, std::vector<Vector<float, 2>> textures,
            std::vector<Vector<float, 4>> normals, std::vector<Matrix<u_int32_t, 3, 3>> triangles,
@@ -38,18 +40,15 @@ void Mesh::parseOBJ(const char* filename) {
             float x, y, z;
             ss >> x >> y >> z;
             vertices.push_back({x, y, z, 1.0f});
-        } 
-        else if (prefix == "vt") {
+        } else if (prefix == "vt") {
             float u, v;
             ss >> u >> v;
             textures.push_back({u, v});
-        } 
-        else if (prefix == "vn") {
+        } else if (prefix == "vn") {
             float nx, ny, nz;
             ss >> nx >> ny >> nz;
             normals.push_back({nx, ny, nz, 0.0f});
-        } 
-        else if (prefix == "f") {
+        } else if (prefix == "f") {
             std::vector<uint32_t> v_indices, vt_indices, vn_indices;
             std::string vertexData;
 
@@ -73,7 +72,7 @@ void Mesh::parseOBJ(const char* filename) {
                 triangles.push_back({{v_indices[0], v_indices[1], v_indices[2]},
                                      {vt_indices[0], vt_indices[1], vt_indices[2]},
                                      {vn_indices[0], vn_indices[1], vn_indices[2]}});
-                
+
                 triangles.push_back({{v_indices[0], v_indices[2], v_indices[3]},
                                      {vt_indices[0], vt_indices[2], vt_indices[3]},
                                      {vn_indices[0], vn_indices[2], vn_indices[3]}});
@@ -127,25 +126,23 @@ void Mesh::parseMTL(const char* filename) {
     file.close();
 }
 
-void Mesh::draw(Camera* camera, Engine* engine) {
-    // Implement drawing logic here
-}
-
-void Mesh::drawWireFrame(Camera* camera, Engine* engine) {
-    for (const auto& triangle : triangles) {
-        Vector<float, 4> v1 = vertices[triangle[0][0]];
-        Vector<float, 4> v2 = vertices[triangle[0][1]];
-        Vector<float, 4> v3 = vertices[triangle[0][2]];
+void Mesh::draw(Camera* camera, bool wireFrame) {
+    for (const auto& tri : triangles) {
+        Vector<float, 4> v1 = vertices[tri[0][0]];
+        Vector<float, 4> v2 = vertices[tri[0][1]];
+        Vector<float, 4> v3 = vertices[tri[0][2]];
 
         v1 = camera->projection * (transform * v1);
         v2 = camera->projection * (transform * v2);
         v3 = camera->projection * (transform * v3);
 
-        v1 = camera->screenToNDC(v1 / v1[3]);
-        v2 = camera->screenToNDC(v2 / v2[3]);
-        v3 = camera->screenToNDC(v3 / v3[3]);
+        std::optional<Vector<float, 4>> sv1 = camera->screenToNDC(v1 / v1[3]);
+        std::optional<Vector<float, 4>> sv2 = camera->screenToNDC(v2 / v2[3]);
+        std::optional<Vector<float, 4>> sv3 = camera->screenToNDC(v3 / v3[3]);
+        if (!sv1 || !sv2 || !sv3) continue;  // Out of bounds
 
-        engine->drawTriangle(v1, v2, v3);
+        Triangle triangle(*sv1, *sv2, *sv3);
+        wireFrame ? triangle.draw() : triangle.fill();
     }
 }
 
@@ -175,15 +172,16 @@ Vector<float, 3> Mesh::getPosition() {
 }
 
 void Mesh::setCenter(Vector<float, 3> center) {
+    Vector<float, 4> center4 = Vector<float, 4>(center);
     for (auto& vertex : vertices) {
-        vertex = vertex - center;
+        vertex = vertex - center4;
     }
 }
 
 Vector<float, 3> Mesh::getCenterOfMass() {
     Vector<float, 3> center = {0, 0, 0};
     for (auto& vertex : vertices) {
-        center = center + vertex;
+        center = center + Vector<float, 3>(vertex);
     }
     return center / vertices.size();
 }
