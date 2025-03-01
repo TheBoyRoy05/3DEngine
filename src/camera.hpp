@@ -2,18 +2,14 @@
 
 #include <SDL2/SDL.h>
 #include <math.h>
-
-#include <optional>
-
 #include "linalg.hpp"
-
-class Engine;
+#include "window.hpp"
 
 class Camera {
     public:
     Matrix<float, 4, 4> projection;
-    Engine& engine;
+    Window& window;
 
     Camera(float fovDeg, float zNear, float zFar);
-    std::optional<Vector<float, 4>> screenToNDC(Vector<float, 4> v);
+    void screenToNDC(Matrix<float, 3, 4>& verticies);
 };

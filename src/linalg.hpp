@@ -54,10 +54,12 @@ class Vector {
     }
 
     T& operator[](size_t index) {
+        if (index >= N) throw std::out_of_range("Index out of range");
         return data[index];
     }
 
     const T& operator[](size_t index) const {
+        if (index >= N) throw std::out_of_range("Index out of range");
         return data[index];
     }
 
@@ -145,16 +147,21 @@ class Vector {
         return result;
     }
 
+    
     /**
-     * Computes the remainder of dividing the elements of this Vector with a scalar value.
+     * Computes the remainder of this Vector divided by a scalar value.
+     * For integral types, the remainder is computed using the %
+     * operator. For floating point types, the remainder is computed
+     * using the fmod() function.
      *
      * @param scalar The scalar value to divide this Vector with.
-     * @return A new Vector containing the remainder of the division of the input Vector with the scalar value.
+     * @return A new Vector containing the remainders of the input Vector.
      */
     Vector operator%(const T& scalar) const {
         Vector result;
         for (size_t i = 0; i < N; ++i) {
-            result[i] = fmod(data[i], scalar);
+            if constexpr (std::is_integral_v<T>) result[i] = data[i] % scalar;
+            else result[i] = fmod(data[i], scalar);
         }
         return result;
     }
@@ -175,39 +182,6 @@ class Vector {
             result += data[i] * other[i];
         }
         return result;
-    }
-
-    /**
-     * Computes the cross product of this Vector and another Vector.
-     *
-     * The cross product is a binary operation on two 3D vectors in a three-dimensional space.
-     * It results in a new vector that is perpendicular to both of the input vectors.
-     *
-     * @param other The other Vector to compute the cross product with.
-     * @return A new Vector that is the cross product of the two input Vectors.
-     * @note This operation is only defined for 3D vectors.
-     */
-    Vector<T, 3> cross(const Vector<T, 3>& other) const {
-        static_assert(N == 3, "Cross product is only defined for 3D vectors");
-        Vector<T, 3> result;
-        result[0] = data[1] * other[2] - data[2] * other[1];
-        result[1] = data[2] * other[0] - data[0] * other[2];
-        result[2] = data[0] * other[1] - data[1] * other[0];
-        return result;
-    }
-
-    /**
-     * Computes the Lp norm of this Vector.
-     *
-     * @param p The value of p for the Lp norm. Default value is 2.
-     * @return The Lp norm of the input Vector.
-     */
-    T norm(int p = 2) const {
-        T total = 0;
-        for (size_t i = 0; i < N; ++i) {
-            total += pow(data[i], p);
-        }
-        return sqrt(total);
     }
 
     /**
@@ -239,36 +213,6 @@ class Matrix {
     private:
     Vector<Vector<T, M>, N> data;
 
-    /**
-     * Computes the cofactor matrix by removing the specified row and column.
-     *
-     * This function generates a new matrix that is the cofactor of the original matrix
-     * by excluding the specified row and column from the original matrix.
-     *
-     * @param row The index of the row to remove.
-     * @param col The index of the column to remove.
-     * @return A new matrix of size (N-1) x (M-1) that is the cofactor of the original matrix.
-     * @note This operation is only valid for matrices with dimensions greater than 1x1.
-     */
-    template <size_t NN = N, size_t MM = M>
-    std::enable_if_t<(NN > 1 && MM > 1), Matrix<T, NN - 1, MM - 1>>
-    cofactor(size_t row, size_t col) const {
-        Matrix<T, NN - 1, MM - 1> result;
-        size_t r = 0, c = 0;
-
-        for (size_t i = 0; i < NN; ++i) {
-            if (i == row) continue;
-            c = 0;
-            for (size_t j = 0; j < MM; ++j) {
-                if (j == col) continue;
-                result[r][c] = data[i][j];
-                ++c;
-            }
-            ++r;
-        }
-        return result;
-    }
-
     public:
     /**
      * Constructs a new Matrix as the identity matrix.
@@ -279,6 +223,23 @@ class Matrix {
     Matrix() {
         for (size_t i = 0; i < std::min(N, M); ++i) {
             data[i][i] = static_cast<T>(1);
+        }
+    }
+
+    /**
+     * Constructs a Matrix from an initializer list of initializer lists.
+     *
+     * Each inner initializer list is expected to contain M elements, and there
+     * should be N of them. If there are less than N inner initializer lists,
+     * the extra rows of the matrix are initialized to zero. If there are more
+     * than N, the extra inner initializer lists are ignored.
+     */
+    template <size_t S>
+    Matrix(std::initializer_list<Vector<T, S>> values) {
+        size_t i = 0;
+        for (const auto& row : values) {
+            if (i < N) data[i++] = Vector<T, M>(row);
+            else break;
         }
     }
 
@@ -310,11 +271,8 @@ class Matrix {
      */
     template <size_t R, size_t S>
     Matrix(const Matrix<T, R, S>& other) {
-        data = Vector<Vector<T, M>, N>();
-        for (size_t i = 0; i < std::min(R, N); ++i) {
-            for (size_t j = 0; j < std::min(S, M); ++j) {
-                data[i][j] = other.data[i][j];
-            }
+        for (size_t i = 0; i < N; ++i) {
+            data[i] = i < R ? Vector<T, M>(other[i]) : Vector<T, M>();
         }
     }
 
@@ -324,10 +282,12 @@ class Matrix {
     }
 
     Vector<T, M>& operator[](size_t index) {
+        if (index >= N) throw std::out_of_range("Index out of range");
         return data[index];
     }
 
     const Vector<T, M>& operator[](size_t index) const {
+        if (index >= N) throw std::out_of_range("Index out of range");
         return data[index];
     }
 
@@ -350,25 +310,42 @@ class Matrix {
     }
 
     /**
-     * Computes the determinant of the matrix.
+     * Performs matrix-matrix multiplication on the given matrix.
      *
-     * The determinant is computed using the Laplace expansion. This is a recursive
-     * algorithm that expands the determinant about the first row, computing the
-     * determinant of the minor matrix for each element in the first row. The
-     * determinant is then computed as the sum of the products of each element in
-     * the first row with the determinant of its minor matrix.
+     * This performs a dot product on each row of the matrix with each column of the
+     * given matrix, resulting in a new matrix with the same number of rows as the
+     * matrix and the same number of columns as the given matrix.
      *
-     * @return The determinant of the matrix.
-     * @note This function is only implemented for square matrices.
+     * @param other The matrix to multiply with this matrix.
+     * @return A new matrix representing the result of the multiplication.
      */
-    T determinant() const {
-        static_assert(N == M, "Determinant is only defined for square matrices");
-        if constexpr (N == 1) return data[0][0];
-        T result = 0;
-        for (size_t col = 0; col < N; ++col) {
-            T sign = (col % 2 == 0) ? 1 : -1;
-            if constexpr (N > 1)
-                result += sign * data[0][col] * cofactor(0, col).determinant();
+    template <size_t S>
+    Matrix<T, N, S> operator*(const Matrix<T, M, S>& other) const {
+        Matrix<T, N, S> result;
+        Matrix<T, S, M> transpose = other.transpose();
+        for (size_t i = 0; i < N; ++i) {
+            for (size_t j = 0; j < S; ++j) {
+                result[i][j] = data[i].dot(transpose[j]);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Transposes the matrix.
+     *
+     * This function swaps the rows and columns of the matrix, resulting in a
+     * new matrix where the rows are the columns of the original matrix and
+     * vice versa.
+     *
+     * @return A new transposed matrix.
+     */
+    Matrix<T, M, N> transpose() const {
+        Matrix<T, M, N> result;
+        for (size_t i = 0; i < N; ++i) {
+            for (size_t j = 0; j < M; ++j) {
+                result[j][i] = data[i][j];
+            }
         }
         return result;
     }
@@ -388,17 +365,39 @@ class Matrix {
         std::cout << "]" << std::endl;
     }
 
-    /**
-     * Sets the last column of the matrix to the given position for homogeneous coordinates.
+        /**
+     * Sets the position vector of this Matrix to the specified value.
      *
-     * The elements of the given vector are copied into the last column of the
-     * matrix. This is used to set the position of a transformation matrix.
+     * This function sets the last column of the matrix, excluding the homogeneous
+     * coordinate, to the specified position vector. The elements of the matrix
+     * are updated row by row from top to bottom, and only the elements that fit
+     * into the matrix are updated.
      *
-     * @param position The vector to copy into the last column of the matrix.
+     * @param position The position vector to set the matrix to.
+     * @note This function is only implemented for square matrices.
      */
     void set_position(const Vector<T, N - 1>& position) {
+        static_assert(N == M, "Matrix must be square");
         for (size_t i = 0; i < N - 1; ++i) {
-            data[i][N - 1] = position[i];
+            data[i][M - 1] = position[i];
+        }
+    }
+
+    /**
+     * Scales the matrix by the specified scale vector.
+     *
+     * This function scales each element along the diagonal of the matrix
+     * by the corresponding element in the scale vector. This operation
+     * modifies the matrix in place, multiplying each diagonal element by
+     * the scale factor provided.
+     *
+     * @param scale The vector containing the scale factors for each diagonal element.
+     * @note This function is only implemented for square matrices.
+     */
+    void set_scale(const Vector<T, N - 1>& scale) {
+        static_assert(N == M, "Matrix must be square");
+        for (size_t i = 0; i < N - 1; ++i) {
+            data[i][i] *= scale[i];
         }
     }
 
