@@ -56,17 +56,14 @@ void Triangle::draw() {
 void Triangle::fill() {
     float twice_area = edge_cross(sv1, sv2, sv3);
     if (twice_area < 1) return;
-    
-    int window_width;
-    SDL_GetWindowSize(window.getWindow(), &window_width, NULL);
 
     float min_x = std::min(sv1[0], std::min(sv2[0], sv3[0]));
     float max_x = std::max(sv1[0], std::max(sv2[0], sv3[0]));
     float min_y = std::min(sv1[1], std::min(sv2[1], sv3[1]));
     float max_y = std::max(sv1[1], std::max(sv2[1], sv3[1]));
 
-    Vector<float, 3> delta_col{v2[1] - v3[1], v3[1] - v1[1], v1[1] - v2[1]};
-    Vector<float, 3> delta_row{v3[0] - v2[0], v1[0] - v3[0], v2[0] - v1[0]};
+    Vector<float, 3> delta_col{sv2[1] - sv3[1], sv3[1] - sv1[1], sv1[1] - sv2[1]};
+    Vector<float, 3> delta_row{sv3[0] - sv2[0], sv1[0] - sv3[0], sv2[0] - sv1[0]};
 
     Vector<float, 2> p0 = {min_x, min_y};
     Vector<float, 3> w_row{edge_cross(sv2, sv3, p0),
@@ -76,6 +73,9 @@ void Triangle::fill() {
                           is_top_left(sv3, sv1) ? 1.0f : 0,
                           is_top_left(sv1, sv2) ? 1.0f : 0};
     w_row = w_row + bias;
+
+    int window_width;
+    SDL_GetWindowSize(window.getWindow(), &window_width, NULL);
 
     for (int y = min_y; y <= max_y; y++) {
         Vector<float, 3> w = w_row;

@@ -27,6 +27,7 @@ namespace Engine {
     void update(float deltaTime) {
         for (auto& mesh : meshes) {
             mesh->draw(camera.get(), false);
+            // mesh->draw(camera.get(), true);
             mesh->setRotation((mesh->getRotation() + Vector<float, 3>({0.6f, 0.6f, 0.6f}) * deltaTime) % (2 * M_PI));
         }
     };

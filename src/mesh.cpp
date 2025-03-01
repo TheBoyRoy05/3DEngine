@@ -52,7 +52,7 @@ void Mesh::draw(Camera* camera, bool wireFrame) {
             if (invalid) continue;
 
             camera->screenToNDC(vertices);
-            triangle->setScreenSpaceVertices(vertices[0], vertices[1], vertices[2]);
+            triangle->setScreenSpaceVertices(vertices);
             wireFrame ? triangle->draw() : triangle->fill();
         }
     }

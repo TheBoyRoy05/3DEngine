@@ -6,7 +6,7 @@ SRC_DIR = src
 OBJ_DIR = objects
 SRCS = $(wildcard $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
-TARGET = main.exe
+TARGET = engine.exe
 
 # Ensure the objects directory exists
 $(OBJ_DIR):

@@ -48,10 +48,10 @@ class Triangle {
              const Vector<float, 3>& n1, const Vector<float, 3>& n2, const Vector<float, 3>& n3,
              const Material& material) : window(Window::getInstance()), v1(v1), v2(v2), v3(v3), uv1(uv1), uv2(uv2), uv3(uv3), n1(n1), n2(n2), n3(n3), material(material) {};
 
-    void setScreenSpaceVertices(const Vector<float, 3>& sv1, const Vector<float, 3>& sv2, const Vector<float, 3>& sv3) {
-        this->sv1 = sv1;
-        this->sv2 = sv2;
-        this->sv3 = sv3;
+    void setScreenSpaceVertices(Matrix<float, 3, 4>& vertices) {
+        sv1 = vertices[0];
+        sv2 = vertices[1];
+        sv3 = vertices[2];
     };
 
     void draw();
