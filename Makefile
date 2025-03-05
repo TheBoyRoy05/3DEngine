@@ -1,6 +1,6 @@
 CXX = g++
-CXXFLAGS = -g -Wall -Werror #-fsanitize=address
-LIBS = -lSDL2 -lSDL2main
+CXXFLAGS = -g -Wall -Werror -std=c++20 #-fsanitize=address
+LIBS = -lSDL2 -lSDL2main -lSDL2_image
 
 SRC_DIR = src
 OBJ_DIR = objects

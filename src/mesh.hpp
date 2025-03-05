@@ -19,6 +19,7 @@ class Mesh {
 
     public:
     Mesh(const std::string& modelPath);
+    ~Mesh();
 
     void setScale(float scale) { this->setScale({scale, scale, scale}); };
     void setScale(Vector<float, 3> scale) { this->transform.set_scale(scale); };

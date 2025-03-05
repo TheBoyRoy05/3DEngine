@@ -17,10 +17,12 @@ namespace Engine {
         camera = std::make_unique<Camera>(90, 0.1f, 10.0f);
 
         Matrix<float, 4, 4> transform;
-        transform.set_position({0.0f, 0.0f, 3.0f});
+        transform.set_position({0.0f, 0.0f, -3.0f});
 
         std::unique_ptr<Mesh> grass_block = std::make_unique<Mesh>("src/Assets/Grass_Block");
         grass_block->setTransform(transform);
+        grass_block->setRotation({M_PI / 4.0f, 0.0f, M_PI / 7.0f});
+        // grass_block->printObjects();
         meshes.push_back(std::move(grass_block));
     };
 
@@ -60,12 +62,12 @@ int main() {
     uint32_t lastTime = SDL_GetTicks();
     while (State::running) {
         handleEvents(&event);
-        if (State::paused) continue;
-
+        
         uint32_t currentTime = SDL_GetTicks();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
-
+        
+        if (State::paused) continue;
         window.clear();
         Engine::update(deltaTime);
         window.render();

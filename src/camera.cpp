@@ -16,13 +16,14 @@
  * @param zFar The far clipping plane distance.
  */
 Camera::Camera(float fovDeg, float zNear, float zFar) : window(Window::getInstance()) {
-    float fovRad = fovDeg * M_PI / 360.0f;
+    float fovHalfRad = fovDeg * M_PI / 360.0f;
+    float ootan = 1.0f / tan(fovHalfRad);
 
     projection = Matrix<float, 4, 4>();
-    projection[0][0] = 1 / tan(fovRad);
-    projection[1][1] = 1 / tan(fovRad);
+    projection[0][0] = ootan;
+    projection[1][1] = ootan;
     projection[2][2] = -(zFar + zNear) / (zFar - zNear);
-    projection[2][3] = 2 * zFar * zNear / (zFar - zNear);
+    projection[2][3] = -2 * zFar * zNear / (zFar - zNear);
     projection[3][2] = -1;
     projection[3][3] = 0;
 }
@@ -32,8 +33,10 @@ void Camera::screenToNDC(Matrix<float, 3, 4>& verticies) {
     SDL_GetWindowSize(window.getWindow(), &width, &height);
     for (int i = 0; i < 3; i++) {
         Vector<float, 4>& vertex = verticies[i];
+        float temp = vertex[3];
         vertex = vertex / vertex[3];
         vertex[0] = (width + vertex[0] * std::min(width, height)) / 2.0f;
         vertex[1] = (height - vertex[1] * std::min(width, height)) / 2.0f;
+        vertex[3] = temp;
     }
 }

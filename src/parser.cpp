@@ -1,5 +1,7 @@
 #include "parser.hpp"
 
+#include <SDL2/SDL_image.h>
+
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -28,6 +30,7 @@ void Parser::parseMTL(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) throw std::runtime_error("Failed to open MTL file: " + std::string(path));
 
+    std::string folderPath = path.substr(0, path.find_last_of('/'));
     std::string line, prefix;
     std::string currMtl;
 
@@ -38,14 +41,28 @@ void Parser::parseMTL(const std::string& path) {
         if (prefix == "newmtl") {
             ss >> currMtl;
             materials[currMtl] = Material{currMtl};
-        } 
-        
-        if (currMtl.empty()) continue;
-        else if (prefix == "Ka") materials[currMtl].ambient = readLine<3>(ss);
-        else if (prefix == "Kd") materials[currMtl].diffuse = readLine<3>(ss);
-        else if (prefix == "Ks") materials[currMtl].specular = readLine<3>(ss);
-        else if (prefix == "Ns") ss >> materials[currMtl].shininess;
-        else if (prefix == "map_Kd") ss >> materials[currMtl].texturePath;
+        }
+
+        if (currMtl.empty())
+            continue;
+        else if (prefix == "Ka")
+            materials[currMtl].ambient = readLine<3>(ss);
+        else if (prefix == "Kd")
+            materials[currMtl].diffuse = readLine<3>(ss);
+        else if (prefix == "Ks")
+            materials[currMtl].specular = readLine<3>(ss);
+        else if (prefix == "Ns")
+            ss >> materials[currMtl].shininess;
+        else if (prefix == "map_Kd") {
+            ss >> materials[currMtl].texturePath;
+            materials[currMtl].texturePath = folderPath + "/" + materials[currMtl].texturePath;
+
+            materials[currMtl].image = IMG_Load(materials[currMtl].texturePath.c_str());
+            if (!materials[currMtl].image) {
+                std::cerr << "Failed to load image: " << IMG_GetError() << std::endl;
+                return;
+            }
+        }
     }
 
     file.close();
@@ -73,14 +90,20 @@ void Parser::parseOBJLine(std::stringstream& ss, std::string& currObj, std::stri
     if (prefix == "o") {
         ss >> currObj;
         objects[currObj] = Object{currObj};
-    } 
-    
-    if (currObj.empty()) return;
-    else if (prefix == "v") objects[currObj].vertices.push_back(readLine<3>(ss));
-    else if (prefix == "vt") objects[currObj].textures.push_back(readLine<2>(ss));
-    else if (prefix == "vn") objects[currObj].normals.push_back(readLine<3>(ss));
-    else if (prefix == "usemtl") ss >> currMtl;
-    else if (prefix == "f") parseFace(ss, currObj, currMtl);
+    }
+
+    if (currObj.empty())
+        return;
+    else if (prefix == "v")
+        objects[currObj].vertices.push_back(readLine<3>(ss));
+    else if (prefix == "vt")
+        objects[currObj].textures.push_back(readLine<2>(ss));
+    else if (prefix == "vn")
+        objects[currObj].normals.push_back(readLine<3>(ss));
+    else if (prefix == "usemtl")
+        ss >> currMtl;
+    else if (prefix == "f")
+        parseFace(ss, currObj, currMtl);
 }
 
 void Parser::parseFace(std::stringstream& ss, std::string& objName, std::string& mtlName) {

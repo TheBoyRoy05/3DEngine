@@ -29,10 +29,11 @@ class Triangle {
         return (v1[1] > v2[1]) || (v1[1] == v2[1] && v1[0] < v2[0]);
     };
 
-    void drawPixel(int x, int y, uint32_t color);
-
+    
     float lerp(float a, float b, float t) { return a + (b - a) * t; };
-    uint32_t sample(Vector<float, 2> uv);
+    void sampleAndDraw(int xpos, int ypos, Vector<float, 2>& uv);
+    
+    void drawPixel(int x, int y, uint32_t color);
     void drawLine(const Vector<float, 3>& v1, const Vector<float, 3>& v2);
 
     public:
@@ -41,7 +42,7 @@ class Triangle {
     const Vector<float, 3>& n1, &n2, &n3;
     const Material& material;
 
-    Vector<float, 3> sv1, sv2, sv3;
+    Vector<float, 4> sv1, sv2, sv3;
 
     Triangle(const Vector<float, 3>& v1, const Vector<float, 3>& v2, const Vector<float, 3>& v3,
              const Vector<float, 2>& uv1, const Vector<float, 2>& uv2, const Vector<float, 2>& uv3,

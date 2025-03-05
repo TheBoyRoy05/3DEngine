@@ -147,6 +147,23 @@ class Vector {
         return result;
     }
 
+    /**
+     * Component-wise division of this Vector by another Vector.
+     *
+     * The length of the result Vector is the minimum of the two input Vector's sizes.
+     * If the two Vectors are of different sizes, the rest of the elements
+     * of the longer Vector are ignored.
+     *
+     * @param other The other Vector to perform component-wise division with.
+     * @return A new Vector containing the component-wise division of the two input Vectors.
+     */
+    Vector operator/(const Vector& other) const {
+        Vector result;
+        for (size_t i = 0; i < std::min(N, other.size()); ++i) {
+            result[i] = data[i] / other[i];
+        }
+        return result;
+    }
     
     /**
      * Computes the remainder of this Vector divided by a scalar value.
@@ -195,6 +212,20 @@ class Vector {
             if (i < N - 1) std::cout << ", ";
         }
         std::cout << ")" << std::endl;
+    }
+
+    /**
+     * Computes the Euclidean norm of this Vector.
+     *
+     * The Euclidean norm, also known as the L2 norm, is the square root of the sum of the squares of the elements of the Vector.
+     * @return The Euclidean norm of this Vector.
+     */
+    T norm() const {
+        T result = 0;
+        for (size_t i = 0; i < N; ++i) {
+            result += data[i] * data[i];
+        }
+        return sqrt(result);
     }
 
     /**

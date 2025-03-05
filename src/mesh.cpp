@@ -19,6 +19,20 @@ Mesh::Mesh(const std::string& modelPath) {
 }
 
 /**
+ * @brief Destructor for the Mesh class.
+ *
+ * This destructor releases resources held by the Mesh, specifically freeing
+ * the SDL_Surface associated with each material's image. It iterates through
+ * the materials map and calls SDL_FreeSurface on each material's image to
+ * prevent memory leaks.
+ */
+Mesh::~Mesh() {
+    for (auto& [name, mat] : materials) {
+        SDL_FreeSurface(mat.image);
+    }
+}
+
+/**
  * @brief Draws the Mesh to the screen using the given Camera.
  *
  * The function renders each triangle in the Mesh's list of triangles.
@@ -33,13 +47,15 @@ Mesh::Mesh(const std::string& modelPath) {
  * @param wireFrame Whether to draw the Mesh in wireframe (true) or filled (false).
  */
 void Mesh::draw(Camera* camera, bool wireFrame) {
+    // int i = 0;
     for (auto& [name, obj] : objects) {
         for (auto& triangle : obj.triangles) {
+            // if (i++ != 6) continue;
             Matrix<float, 4, 4> vertices_temp{triangle->v1, triangle->v2, triangle->v3};
 
             // Set homogeneous coordinate to 1
             vertices_temp.set_position({1.0f, 1.0f, 1.0f});
-            Matrix<float, 3, 4> vertices = (camera->projection * transform * vertices_temp.transpose()).transpose();
+            Matrix<float, 3, 4> vertices = (camera->projection * (transform * vertices_temp.transpose())).transpose();
 
             // Check if triangle is out of bounds
             bool invalid = false;
@@ -98,7 +114,7 @@ Vector<float, 3> Mesh::getCenterOfMass() {
 
 void Mesh::printObjects() {
     for (auto& [name, obj] : objects) {
-        std::cout << name << ":\n";
+        std::cout << "\nObject: " << name << ":\n";
         std::cout << "\nVertices:\n";
         for (auto& vertex : obj.vertices) {
             vertex.print();
@@ -123,7 +139,7 @@ void Mesh::printObjects() {
 
 void Mesh::printMaterials() {
     for (auto& [name, material] : materials) {
-        std::cout << name << ":\n";
+        std::cout << "\nMaterial: " << name << ":\n";
         std::cout << "Shininess: " << material.shininess << "\n";
         std::cout << "Ambient: ";
         material.ambient.print();
