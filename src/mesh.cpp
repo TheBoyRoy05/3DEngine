@@ -1,13 +1,14 @@
 #include "mesh.hpp"
-#include "triangle.hpp"
+
 #include "parser.hpp"
+#include "triangle.hpp"
 
 /**
  * @brief Constructs a Mesh from the specified model file.
  *
  * This constructor initializes the Mesh by parsing the model file
- * located at the given path. It uses a Parser to read the file and 
- * populate the Mesh's internal data structures with objects and materials. 
+ * located at the given path. It uses a Parser to read the file and
+ * populate the Mesh's internal data structures with objects and materials.
  * After parsing, it sets the Mesh's center to its calculated center of mass.
  *
  * @param modelPath The path to the model file to be loaded.
@@ -47,20 +48,23 @@ Mesh::~Mesh() {
  * @param wireFrame Whether to draw the Mesh in wireframe (true) or filled (false).
  */
 void Mesh::draw(Camera* camera, bool wireFrame) {
-    // int i = 0;
     for (auto& [name, obj] : objects) {
         for (auto& triangle : obj.triangles) {
-            // if (i++ != 6) continue;
             Matrix<float, 4, 4> vertices_temp{triangle->v1, triangle->v2, triangle->v3};
 
             // Set homogeneous coordinate to 1
             vertices_temp.set_position({1.0f, 1.0f, 1.0f});
-            Matrix<float, 3, 4> vertices = (camera->projection * (transform * vertices_temp.transpose())).transpose();
+            Matrix<float, 3, 4> vertices = (camera->getProjection() *
+                                            (camera->getView() *
+                                             (transform *
+                                              vertices_temp.transpose())))
+                                               .transpose();
+            vertices.print();
 
             // Check if triangle is out of bounds
             bool invalid = false;
             for (int i = 0; i < 9; i++) {
-                if (abs(vertices[i/3][i%3]) > abs(vertices[i/3][3])) {
+                if (abs(vertices[i / 3][i % 3]) > abs(vertices[i / 3][3])) {
                     invalid = true;
                     break;
                 }

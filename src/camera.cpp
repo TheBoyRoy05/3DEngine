@@ -1,4 +1,5 @@
 #include "camera.hpp"
+
 #include "window.hpp"
 
 /**
@@ -16,12 +17,16 @@
  * @param zFar The far clipping plane distance.
  */
 Camera::Camera(float fovDeg, float zNear, float zFar) : window(Window::getInstance()) {
-    float fovHalfRad = fovDeg * M_PI / 360.0f;
-    float ootan = 1.0f / tan(fovHalfRad);
+    this->zNear = zNear;
+    this->zFar = zFar;
+    this->ooTan = 1.0f / tan(fovDeg * M_PI / 360.0f);
 
+    rotation = Vector<float, 3>();
+    view = Matrix<float, 4, 4>();
     projection = Matrix<float, 4, 4>();
-    projection[0][0] = ootan;
-    projection[1][1] = ootan;
+
+    projection[0][0] = ooTan;
+    projection[1][1] = ooTan;
     projection[2][2] = -(zFar + zNear) / (zFar - zNear);
     projection[2][3] = -2 * zFar * zNear / (zFar - zNear);
     projection[3][2] = -1;

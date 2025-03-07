@@ -110,7 +110,7 @@ void Triangle::fill() {
         Vector<float, 3> w = w_row;
         for (int x = min_x; x <= max_x; x++) {
             // Barycentric Coordinates
-            Vector<float, 3> coord = Vector<float, 3>(w) / twice_area;
+            Vector<float, 3> coord = w / twice_area;
             w = w + delta_col;
 
             // Check if the pixel is inside the triangle
@@ -120,14 +120,6 @@ void Triangle::fill() {
             float z = 1 / coord.dot(zinv);
             if (z > window.getDepthBuffer()->at(x + y * window_width) + 1e-6) continue;
             window.getDepthBuffer()->at(x + y * window_width) = z;
-
-            // Barycentric RGB Shader
-            // Vector<float, 3> color = coord * Vector<float, 3>{255 / sv1[2], 255 / sv2[2], 255 / sv3[2]} * z;
-            // drawPixel(x, y, RGBA((int)color[0], (int)color[1], (int)color[2], 255));
-
-            // Depth Shader
-            // int c = std::max(0, std::min(255, int(255 * (z + 1) / 2.0f)));
-            // drawPixel(x, y, RGBA(c, c, c, 255));
 
             // Texture Shader
             Matrix<float, 3, 2> puv{puv1, puv2, puv3};
