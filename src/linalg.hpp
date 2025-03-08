@@ -485,13 +485,35 @@ class Matrix {
         data[2][0] = -sy;       data[2][1] = cy * sx;                   data[2][2] = cx * cy;
     }
 
-    void set_view(const Vector<T, 2>& angles) {
+    /**
+     * Sets the view matrix to the given 2D rotation.
+     *
+     * This function sets the rotation of the matrix to the given 2D rotation
+     * in the order of YX (pitch, yaw). The matrix is multiplied by the
+     * rotation matrix corresponding to the given angles.
+     *
+     * The rotation matrix is calculated using the following formulas:
+     *
+     *   R = R_y * R_x
+     *
+     *   R_x = [ 1,  0,    0  ]
+     *         [ 0,  cx, -sx ]
+     *         [ 0,  sx,  cx ]
+     *
+     *   R_y = [ cy,  0,   sy ]
+     *         [ 0,  1,    0  ]
+     *         [-sy, 0,   cy ]
+     *
+     * @param rotation The 2D rotation to set the view to.
+     */
+    void set_view(const Vector<T, 2>& rotation) {
         static_assert(N >= 3 && M >= 3, "Rotation matrix must be at least 3x3");
-        T sx = sin(angles[0]), sy = sin(angles[1]);
-        T cx = cos(angles[0]), cy = cos(angles[1]);
+        T sp = sin(rotation[0]), cp = cos(rotation[0]); // pitch
+        T sy = sin(rotation[1]), cy = cos(rotation[1]); // yaw
 
-        data[0][0] = cx;    data[0][1] = -sx * sy;      data[0][2] = -sx * cy;
-        data[1][0] = 0;     data[1][1] = cy;            data[1][2] = -sy;
-        data[2][0] = sx;    data[2][1] = cx * sy;       data[2][2] = cx * cy;
+        data[0][0] = cy;        data[0][1] = 0;     data[0][2] = sy;
+        data[1][0] = sp * sy;   data[1][1] = cp;    data[1][2] = -sp * cy;
+        data[2][0] = -cp * sy;  data[2][1] = sp;    data[2][2] = cp * cy;
     }
 };
+

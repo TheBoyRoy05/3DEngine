@@ -29,10 +29,10 @@ class Camera {
     Vector<float, 3> getRight() { return getRotationMatrix() * Vector<float, 3>({1, 0, 0}); }
     Vector<float, 3> getForward() { return getRotationMatrix() * Vector<float, 3>({0, 0, -1}); }
 
-    void setRotation(Vector<float, 2> rotation) {
-        float yaw = fmod(rotation[0], 2 * M_PI);
-        float pitch = CLAMP(rotation[1], -M_PI_2, M_PI_2);
-        this->rotation = Vector<float, 2>{yaw, pitch};
+    void setRotation(Vector<float, 3> rotation) {
+        float pitch = CLAMP(rotation[0], -M_PI_2, M_PI_2);
+        float yaw = fmod(rotation[1], 2 * M_PI);
+        this->rotation = Vector<float, 2>({pitch, yaw});
         this->view.set_view(this->rotation);
         setPosition(this->position);
     }

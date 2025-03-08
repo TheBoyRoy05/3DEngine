@@ -55,12 +55,11 @@ namespace Engine {
 Vector<float, 2> MousePos() {
     int MouseX, MouseY;
     SDL_GetMouseState(&MouseX, &MouseY);
-    return Vector<float, 2>({float(MouseX), float(MouseY)});
+    return Vector<float, 2>({float(MouseY), float(MouseX)});
 }
 
 void handleEvents(SDL_Event* event, float deltaTime) {
     Camera* camera = Engine::camera.get();
-    camera->getPosition().print();
     
     while (SDL_PollEvent(event)) {
         if (event->type == SDL_QUIT) State::running = false;
@@ -71,6 +70,7 @@ void handleEvents(SDL_Event* event, float deltaTime) {
         if (event->type == SDL_MOUSEMOTION && State::mouseDown) {
             camera->setRotation(camera->getRotation() + (MousePos() - State::mousePos) * Settings::sensitivity);
         }
+        State::mousePos = MousePos();
 
         if (event->type == SDL_KEYDOWN) {
             if (event->key.keysym.sym == SDLK_SPACE) State::paused = !State::paused;
@@ -102,8 +102,6 @@ int main() {
         lastTime = currentTime;
 
         handleEvents(&event, deltaTime);
-        State::mousePos = MousePos();
-
         if (State::paused) continue;
 
         window.clear();
