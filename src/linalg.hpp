@@ -480,14 +480,18 @@ class Matrix {
         T sx = sin(angles[0]), sy = sin(angles[1]), sz = sin(angles[2]);
         T cx = cos(angles[0]), cy = cos(angles[1]), cz = cos(angles[2]);
 
-        data[0][0] = cy * cz;
-        data[0][1] = cz * sx * sy - cx * sz;
-        data[0][2] = cx * cz * sy + sx * sz;
-        data[1][0] = cy * sz;
-        data[1][1] = cx * cz + sx * sy * sz;
-        data[1][2] = -cz * sx + cx * sy * sz;
-        data[2][0] = -sy;
-        data[2][1] = cy * sx;
-        data[2][2] = cx * cy;
+        data[0][0] = cy * cz;   data[0][1] = cz * sx * sy - cx * sz;    data[0][2] = cx * cz * sy + sx * sz;
+        data[1][0] = cy * sz;   data[1][1] = cx * cz + sx * sy * sz;    data[1][2] = -cz * sx + cx * sy * sz;
+        data[2][0] = -sy;       data[2][1] = cy * sx;                   data[2][2] = cx * cy;
+    }
+
+    void set_view(const Vector<T, 2>& angles) {
+        static_assert(N >= 3 && M >= 3, "Rotation matrix must be at least 3x3");
+        T sx = sin(angles[0]), sy = sin(angles[1]);
+        T cx = cos(angles[0]), cy = cos(angles[1]);
+
+        data[0][0] = cx;    data[0][1] = -sx * sy;      data[0][2] = -sx * cy;
+        data[1][0] = 0;     data[1][1] = cy;            data[1][2] = -sy;
+        data[2][0] = sx;    data[2][1] = cx * sy;       data[2][2] = cx * cy;
     }
 };

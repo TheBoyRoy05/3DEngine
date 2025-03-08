@@ -37,10 +37,6 @@ namespace Engine {
         std::unique_ptr<Mesh> grass_block = std::make_unique<Mesh>("src/Assets/Grass_Block");
         grass_block->setTransform(transform);
         meshes.push_back(std::move(grass_block));
-
-        std::unique_ptr<Mesh> origin_block = std::make_unique<Mesh>("src/Assets/Grass_Block");
-        origin_block->setScale(0.1f);
-        meshes.push_back(std::move(origin_block));
     };
 
     void update(float deltaTime) {
@@ -59,11 +55,12 @@ namespace Engine {
 Vector<float, 2> MousePos() {
     int MouseX, MouseY;
     SDL_GetMouseState(&MouseX, &MouseY);
-    return Vector<float, 2>({float(MouseY), float(MouseX)});
+    return Vector<float, 2>({float(MouseX), float(MouseY)});
 }
 
 void handleEvents(SDL_Event* event, float deltaTime) {
     Camera* camera = Engine::camera.get();
+    camera->getPosition().print();
     
     while (SDL_PollEvent(event)) {
         if (event->type == SDL_QUIT) State::running = false;
@@ -72,12 +69,7 @@ void handleEvents(SDL_Event* event, float deltaTime) {
         if (event->type == SDL_MOUSEBUTTONUP && event->button.button == SDL_BUTTON_LEFT) State::mouseDown = false;
 
         if (event->type == SDL_MOUSEMOTION && State::mouseDown) {
-            Vector<float, 3> rotation = camera->getRotation();
-            Vector<float, 2> mouseDelta = State::mousePos - MousePos();
-            Vector<float, 3> newRotation = {mouseDelta[0], mouseDelta[1], 0};
-            rotation.print();
-            newRotation.print();
-            camera->setRotation(rotation + newRotation * Settings::sensitivity);
+            camera->setRotation(camera->getRotation() + (MousePos() - State::mousePos) * Settings::sensitivity);
         }
 
         if (event->type == SDL_KEYDOWN) {
