@@ -56,12 +56,8 @@ void Parser::parseMTL(const std::string& path) {
         else if (prefix == "map_Kd") {
             ss >> materials[currMtl].texturePath;
             materials[currMtl].texturePath = folderPath + "/" + materials[currMtl].texturePath;
-
             materials[currMtl].image = IMG_Load(materials[currMtl].texturePath.c_str());
-            if (!materials[currMtl].image) {
-                std::cerr << "Failed to load image: " << IMG_GetError() << std::endl;
-                return;
-            }
+            if (!materials[currMtl].image) std::cerr << "Failed to load image: " << IMG_GetError() << std::endl;
         }
     }
 

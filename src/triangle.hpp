@@ -31,7 +31,7 @@ class Triangle {
 
     
     float lerp(float a, float b, float t) { return a + (b - a) * t; };
-    void sampleAndDraw(int xpos, int ypos, Vector<float, 2>& uv);
+    uint32_t sample(Vector<float, 2>& uv);
     
     void drawPixel(int x, int y, uint32_t color);
     void drawLine(const Vector<float, 3>& v1, const Vector<float, 3>& v2);

@@ -4,28 +4,43 @@
 #include <iostream>
 
 #include "camera.hpp"
+#include "linalg.hpp"
 #include "mesh.hpp"
 #include "window.hpp"
 
+namespace State {
+    bool running = true;
+    bool paused = false;
+
+    bool mouseDown = false;
+    Vector<float, 2> mousePos = {0, 0};
+}  // namespace State
+
+namespace Settings {
+    float speed = 2.0f;
+    float sensitivity = 0.003f;
+}  // namespace Settings
+
 namespace Engine {
     namespace {
-        std::unique_ptr<Camera> camera;
         std::vector<std::unique_ptr<Mesh>> meshes;
     }  // namespace
 
-    void moveCamera(Vector<float, 3> direction) {
-        camera->setPosition(camera->getPosition() + direction);
-    }
+    std::unique_ptr<Camera> camera;
 
     void setup() {
         camera = std::make_unique<Camera>(60, 0.1f, 100.0f);
 
         Matrix<float, 4, 4> transform;
-        transform.set_position({0.0f, 0.0f, -20.0f});
+        transform.set_position({0.0f, 0.0f, -10.0f});
 
         std::unique_ptr<Mesh> grass_block = std::make_unique<Mesh>("src/Assets/Grass_Block");
         grass_block->setTransform(transform);
         meshes.push_back(std::move(grass_block));
+
+        std::unique_ptr<Mesh> origin_block = std::make_unique<Mesh>("src/Assets/Grass_Block");
+        origin_block->setScale(0.1f);
+        meshes.push_back(std::move(origin_block));
     };
 
     void update(float deltaTime) {
@@ -41,23 +56,44 @@ namespace Engine {
     };
 }  // namespace Engine
 
-namespace State {
-    bool running = true;
-    bool paused = false;
-    float speed = 2.0f;
-}  // namespace State
+Vector<float, 2> MousePos() {
+    int MouseX, MouseY;
+    SDL_GetMouseState(&MouseX, &MouseY);
+    return Vector<float, 2>({float(MouseY), float(MouseX)});
+}
 
 void handleEvents(SDL_Event* event, float deltaTime) {
+    Camera* camera = Engine::camera.get();
+    
     while (SDL_PollEvent(event)) {
         if (event->type == SDL_QUIT) State::running = false;
+
+        if (event->type == SDL_MOUSEBUTTONDOWN && event->button.button == SDL_BUTTON_LEFT) State::mouseDown = true;
+        if (event->type == SDL_MOUSEBUTTONUP && event->button.button == SDL_BUTTON_LEFT) State::mouseDown = false;
+
+        if (event->type == SDL_MOUSEMOTION && State::mouseDown) {
+            Vector<float, 3> rotation = camera->getRotation();
+            Vector<float, 2> mouseDelta = State::mousePos - MousePos();
+            Vector<float, 3> newRotation = {mouseDelta[0], mouseDelta[1], 0};
+            rotation.print();
+            newRotation.print();
+            camera->setRotation(rotation + newRotation * Settings::sensitivity);
+        }
+
         if (event->type == SDL_KEYDOWN) {
             if (event->key.keysym.sym == SDLK_SPACE) State::paused = !State::paused;
-            if (event->key.keysym.sym == int('w')) Engine::moveCamera(Vector<float, 3>({0.0f, 0.0f, State::speed * deltaTime}));
-            if (event->key.keysym.sym == int('s')) Engine::moveCamera(Vector<float, 3>({0.0f, 0.0f, -State::speed * deltaTime}));
-            if (event->key.keysym.sym == int('a')) Engine::moveCamera(Vector<float, 3>({State::speed * deltaTime, 0.0f, 0.0f}));
-            if (event->key.keysym.sym == int('d')) Engine::moveCamera(Vector<float, 3>({-State::speed * deltaTime, 0.0f, 0.0f}));
-            if (event->key.keysym.sym == int('e')) Engine::moveCamera(Vector<float, 3>({0.0f, -State::speed * deltaTime, 0.0f}));
-            if (event->key.keysym.sym == int('q')) Engine::moveCamera(Vector<float, 3>({0.0f, State::speed * deltaTime, 0.0f}));
+            if (event->key.keysym.sym == int('w'))
+                camera->setPosition(camera->getPosition() + camera->getForward() * deltaTime * Settings::speed);
+            if (event->key.keysym.sym == int('s'))
+                camera->setPosition(camera->getPosition() - camera->getForward() * deltaTime * Settings::speed);
+            if (event->key.keysym.sym == int('d'))
+                camera->setPosition(camera->getPosition() + camera->getRight() * deltaTime * Settings::speed);
+            if (event->key.keysym.sym == int('a'))
+                camera->setPosition(camera->getPosition() - camera->getRight() * deltaTime * Settings::speed);
+            if (event->key.keysym.sym == int('e'))
+                camera->setPosition(camera->getPosition() + camera->getUp() * deltaTime * Settings::speed);
+            if (event->key.keysym.sym == int('q'))
+                camera->setPosition(camera->getPosition() - camera->getUp() * deltaTime * Settings::speed);
         }
     }
 }
@@ -72,9 +108,12 @@ int main() {
         uint32_t currentTime = SDL_GetTicks();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
+
         handleEvents(&event, deltaTime);
+        State::mousePos = MousePos();
 
         if (State::paused) continue;
+
         window.clear();
         Engine::update(deltaTime);
         window.render();

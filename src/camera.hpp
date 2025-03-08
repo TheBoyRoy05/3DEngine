@@ -10,19 +10,34 @@ class Camera {
     private:
     Matrix<float, 4, 4> projection;
     Matrix<float, 4, 4> view;
+    Vector<float, 3> position;
     Vector<float, 3> rotation;
     float ooTan, zNear, zFar;
     Window& window;
 
     public:
-    Vector<float, 3> getPosition() { return this->view.get_position(); }
-    void setPosition(Vector<float, 3> position) { this->view.set_position(position); }
     Matrix<float, 4, 4> getView() { return this->view; }
-    void setView(Matrix<float, 4, 4> view) { this->view = view; }
-    Vector<float, 3> getRotation() { return this->rotation; }
-    void setRotation(Vector<float, 3> rotation) { this->view.set_rotation3(this->rotation = rotation); }
     Matrix<float, 4, 4> getProjection() { return this->projection; }
+    Matrix<float, 3, 3> getRotationMatrix() { return Matrix<float, 3, 3>(this->view).transpose(); }
+
+    Vector<float, 3> getPosition() { return this->position; }
+    Vector<float, 3> getRotation() { return this->rotation; }
+
+    Vector<float, 3> getUp() { return Vector<float, 3>({0, 1, 0}); }
+    Vector<float, 3> getRight() { return getRotationMatrix() * Vector<float, 3>({1, 0, 0}); }
+    Vector<float, 3> getForward() { return getRotationMatrix() * Vector<float, 3>({0, 0, -1}); }
+
+    void setRotation(Vector<float, 3> rotation) {
+        this->rotation = rotation;
+        this->view.set_rotation3(this->rotation * -1);
+        setPosition(this->position);
+    }
+
+    void setPosition(Vector<float, 3> position) {
+        this->position = position;
+        this->view.set_position(Matrix<float, 3, 3>(this->view) * this->position * -1);
+    }
 
     Camera(float fovDeg, float zNear, float zFar);
-    void screenToNDC(Matrix<float, 3, 4>& verticies);
+    bool toDeviceCoordinates(Matrix<float, 3, 4>& verticies);
 };

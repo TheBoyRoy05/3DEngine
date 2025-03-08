@@ -9,6 +9,8 @@
 Window::Window(int width, int height, uint32_t bgColor): bgColor(bgColor) {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_CreateWindowAndRenderer(width, height, 0, &window, &renderer);
+    // SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+
     SDL_SetRenderDrawColor(renderer, R(bgColor), G(bgColor), B(bgColor), A(bgColor));
     SDL_RenderClear(renderer);
     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");

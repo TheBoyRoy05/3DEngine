@@ -59,19 +59,10 @@ void Mesh::draw(Camera* camera, bool wireFrame) {
                                              (transform *
                                               vertices_temp.transpose())))
                                                .transpose();
-            vertices.print();
 
-            // Check if triangle is out of bounds
-            bool invalid = false;
-            for (int i = 0; i < 9; i++) {
-                if (abs(vertices[i / 3][i % 3]) > abs(vertices[i / 3][3])) {
-                    invalid = true;
-                    break;
-                }
-            }
-            if (invalid) continue;
+            bool outOfBounds = camera->toDeviceCoordinates(vertices);
+            if (outOfBounds) continue;
 
-            camera->screenToNDC(vertices);
             triangle->setScreenSpaceVertices(vertices);
             wireFrame ? triangle->draw() : triangle->fill();
         }

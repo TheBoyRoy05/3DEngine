@@ -3,13 +3,20 @@
 #include <SDL2/SDL_image.h>
 
 #define RGBA(r, g, b, a) ((r & 0xFF) << 24 | (g & 0xFF) << 16 | (b & 0xFF) << 8 | (a & 0xFF))
+#define MISSING_COLOR RGBA(255, 0, 220, 255)
 
 void Triangle::drawPixel(int x, int y, uint32_t color) {
+    int width, height;
+    SDL_GetWindowSize(window.getWindow(), &width, &height);
+    if (x < 0 || x >= width || y < 0 || y >= height) return;
+    
     SDL_SetRenderDrawColor(window.getRenderer(), R(color), G(color), B(color), A(color));
     SDL_RenderDrawPoint(window.getRenderer(), x, y);
 };
 
-void Triangle::sampleAndDraw(int xpos, int ypos, Vector<float, 2>& uv) {
+uint32_t Triangle::sample(Vector<float, 2>& uv) {
+    if (!material.image) return MISSING_COLOR;
+
     uint32_t* pixels = (uint32_t*)material.image->pixels;
     SDL_PixelFormat* format = material.image->format;
 
@@ -34,7 +41,7 @@ void Triangle::sampleAndDraw(int xpos, int ypos, Vector<float, 2>& uv) {
     uint8_t b = lerp(lerp(b0, b1, dx), lerp(b2, b3, dx), dy);
     uint8_t a = lerp(lerp(a0, a1, dx), lerp(a2, a3, dx), dy);
 
-    drawPixel(xpos, ypos, RGBA(r, g, b, a));
+    return RGBA(r, g, b, a);
 }
 
 /**
@@ -103,8 +110,8 @@ void Triangle::fill() {
     Vector<float, 2> puv2 = uv2 * zinv[1];
     Vector<float, 2> puv3 = uv3 * zinv[2];
 
-    int window_width;
-    SDL_GetWindowSize(window.getWindow(), &window_width, NULL);
+    int width, height;
+    SDL_GetWindowSize(window.getWindow(), &width, &height);
 
     for (int y = min_y; y <= max_y; y++) {
         Vector<float, 3> w = w_row;
@@ -112,19 +119,20 @@ void Triangle::fill() {
             // Barycentric Coordinates
             Vector<float, 3> coord = w / twice_area;
             w = w + delta_col;
-
-            // Check if the pixel is inside the triangle
+            
+            // Check if the pixel is inside the screen and triangle
+            if (x < 0 || x >= width || y < 0 || y >= height) continue;
             if (coord[0] < 0 || coord[1] < 0 || coord[2] < 0) continue;
 
             // Check depth buffer
             float z = 1 / coord.dot(zinv);
-            if (z > window.getDepthBuffer()->at(x + y * window_width) + 1e-6) continue;
-            window.getDepthBuffer()->at(x + y * window_width) = z;
+            if (z > window.getDepthBuffer()->at(x + y * width) + 1e-6) continue;
+            window.getDepthBuffer()->at(x + y * width) = z;
 
             // Texture Shader
             Matrix<float, 3, 2> puv{puv1, puv2, puv3};
             Vector<float, 2> uv_coord = (puv.transpose() * coord) * z;
-            sampleAndDraw(x, y, uv_coord);
+            drawPixel(x, y, sample(uv_coord));
         }
         w_row = w_row + delta_row;
     }
