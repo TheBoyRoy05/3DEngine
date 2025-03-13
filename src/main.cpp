@@ -17,31 +17,41 @@ namespace State {
 }  // namespace State
 
 namespace Settings {
-    float speed = 2.0f;
+    float baseSpeed = 2.0f;
+    float sprintSpeed = 4.0f;
+    float speed = baseSpeed;
+
     float sensitivity = 0.003f;
 }  // namespace Settings
 
 namespace Engine {
     namespace {
         std::vector<std::unique_ptr<Mesh>> meshes;
+
+        void loadMesh(std::string path, Vector<float, 3> position = {0, 0, 0}, Vector<float, 3> scale = {1, 1, 1}, Vector<float, 3> rotation = {0, 0, 0}) {
+            std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>(path);
+            // mesh->printObjects();
+            // mesh->printTriangles();
+            // mesh->printMaterials();
+            mesh->setRotation(rotation);
+            mesh->setPosition(position);
+            mesh->setScale(scale);
+            meshes.push_back(std::move(mesh));
+        }
     }  // namespace
 
     std::unique_ptr<Camera> camera;
 
     void setup() {
         camera = std::make_unique<Camera>(60, 0.1f, 100.0f);
-
-        Matrix<float, 4, 4> transform;
-        transform.set_position({0.0f, 0.0f, -10.0f});
-
-        std::unique_ptr<Mesh> grass_block = std::make_unique<Mesh>("src/Assets/Grass_Block");
-        grass_block->setTransform(transform);
-        meshes.push_back(std::move(grass_block));
+        // loadMesh("src/Assets/Grass_Block", {0.0f, 0.0f, -10.0f});
+        loadMesh("src/Assets/Utah_Teapot", {0.0f, 0.0f, -10.0f}, {0.05f, 0.05f, 0.05f});
     };
 
     void update(float deltaTime) {
         for (auto& mesh : meshes) {
             mesh->draw(camera.get(), false);
+            // mesh->draw(camera.get(), true);
             // mesh->setRotation((mesh->getRotation() + Vector<float, 3>({0.6f, 0.6f, 0.6f}) * deltaTime) % (2 * M_PI));
         }
     };
@@ -74,6 +84,7 @@ void handleEvents(SDL_Event* event, float deltaTime) {
 
         if (event->type == SDL_KEYDOWN) {
             if (event->key.keysym.sym == SDLK_SPACE) State::paused = !State::paused;
+            if (event->key.keysym.sym == SDLK_LSHIFT) Settings::speed = Settings::sprintSpeed;
             if (event->key.keysym.sym == int('w'))
                 camera->setPosition(camera->getPosition() + camera->getForward() * deltaTime * Settings::speed);
             if (event->key.keysym.sym == int('s'))
@@ -86,6 +97,10 @@ void handleEvents(SDL_Event* event, float deltaTime) {
                 camera->setPosition(camera->getPosition() + camera->getUp() * deltaTime * Settings::speed);
             if (event->key.keysym.sym == int('q'))
                 camera->setPosition(camera->getPosition() - camera->getUp() * deltaTime * Settings::speed);
+        }
+
+        if (event->type == SDL_KEYUP) {
+            if (event->key.keysym.sym == SDLK_LSHIFT) Settings::speed = Settings::baseSpeed;
         }
     }
 }
@@ -100,6 +115,7 @@ int main() {
         uint32_t currentTime = SDL_GetTicks();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
+        // std::cout << "FPS: " << (deltaTime > 0 ? 1.0f / deltaTime : 0) << std::endl;
 
         handleEvents(&event, deltaTime);
         if (State::paused) continue;

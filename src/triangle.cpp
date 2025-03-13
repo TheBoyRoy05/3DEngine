@@ -3,13 +3,14 @@
 #include <SDL2/SDL_image.h>
 
 #define RGBA(r, g, b, a) ((r & 0xFF) << 24 | (g & 0xFF) << 16 | (b & 0xFF) << 8 | (a & 0xFF))
-#define MISSING_COLOR RGBA(255, 0, 220, 255)
+#define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
+#define MISSING_COLOR RGBA(255, 255, 255, 255)
 
 void Triangle::drawPixel(int x, int y, uint32_t color) {
     int width, height;
     SDL_GetWindowSize(window.getWindow(), &width, &height);
     if (x < 0 || x >= width || y < 0 || y >= height) return;
-    
+
     SDL_SetRenderDrawColor(window.getRenderer(), R(color), G(color), B(color), A(color));
     SDL_RenderDrawPoint(window.getRenderer(), x, y);
 };
@@ -86,7 +87,7 @@ void Triangle::draw() {
 
 void Triangle::fill() {
     float twice_area = edge_cross(sv1, sv2, sv3);
-    if (twice_area > -1) return;
+    // if (twice_area > -1) return;
 
     float min_x = std::min(sv1[0], std::min(sv2[0], sv3[0]));
     float max_x = std::max(sv1[0], std::max(sv2[0], sv3[0]));
@@ -105,10 +106,10 @@ void Triangle::fill() {
                           is_top_left(sv1, sv2) ? 1.0f : 0};
     w_row = w_row + bias;
 
+    // Perpective Correct Interpolation
     Vector<float, 3> zinv = {1 / sv1[3], 1 / sv2[3], 1 / sv3[3]};
-    Vector<float, 2> puv1 = uv1 * zinv[0];
-    Vector<float, 2> puv2 = uv2 * zinv[1];
-    Vector<float, 2> puv3 = uv3 * zinv[2];
+    Matrix<float, 3, 3> pn = Matrix<float, 3, 3>({sn1 * zinv[0], sn2 * zinv[1], sn3 * zinv[2]}).transpose();
+    // Matrix<float, 2, 3> puv = Matrix<float, 3, 2>({*uv1 * zinv[0], *uv2 * zinv[1], *uv3 * zinv[2]}).transpose();
 
     int width, height;
     SDL_GetWindowSize(window.getWindow(), &width, &height);
@@ -119,7 +120,7 @@ void Triangle::fill() {
             // Barycentric Coordinates
             Vector<float, 3> coord = w / twice_area;
             w = w + delta_col;
-            
+
             // Check if the pixel is inside the screen and triangle
             if (x < 0 || x >= width || y < 0 || y >= height) continue;
             if (coord[0] < 0 || coord[1] < 0 || coord[2] < 0) continue;
@@ -130,26 +131,34 @@ void Triangle::fill() {
             window.getDepthBuffer()->at(x + y * width) = z;
 
             // Texture Shader
-            Matrix<float, 3, 2> puv{puv1, puv2, puv3};
-            Vector<float, 2> uv_coord = (puv.transpose() * coord) * z;
-            drawPixel(x, y, sample(uv_coord));
+            // Vector<float, 2> uv = puv * coord * z;
+            // drawPixel(x, y, sample(uv));
+
+            // Lighting
+            // Vector<float, 3> normal = (pn * coord * z).normalize();
+            // int c = CLAMP(normal.dot({0, 0, -1}) * 255, 0, 255);
+            // drawPixel(x, y, RGBA(c, c, c, 255));
+
+            Vector<float, 3> normal = (pn * coord * z).normalize();
+            Vector<float, 3> c = normal * 255;
+            drawPixel(x, y, RGBA(int(abs(c[0])), int(abs(c[1])), int(abs(c[2])), 255));
         }
         w_row = w_row + delta_row;
     }
 }
 
 void Triangle::print() {
-    std::cout << "\nVertices:\n";
-    v1.print();
-    v2.print();
-    v3.print();
+    std::cout << "Vertices:\n";
+    v1->print();
+    v2->print();
+    v3->print();
     std::cout << "\nTextures:\n";
-    uv1.print();
-    uv2.print();
-    uv3.print();
+    uv1->print();
+    uv2->print();
+    uv3->print();
     std::cout << "\nNormals:\n";
-    n1.print();
-    n2.print();
-    n3.print();
+    n1->print();
+    n2->print();
+    n3->print();
     std::cout << "\nMaterial: " << material.name << "\n";
 }

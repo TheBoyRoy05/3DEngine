@@ -35,5 +35,6 @@ class Mesh {
 
     void draw(Camera* camera, bool wireFrame = false);
     void printObjects();
+    void printTriangles();
     void printMaterials();
 };

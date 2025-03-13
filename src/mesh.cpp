@@ -50,9 +50,9 @@ Mesh::~Mesh() {
 void Mesh::draw(Camera* camera, bool wireFrame) {
     for (auto& [name, obj] : objects) {
         for (auto& triangle : obj.triangles) {
-            Matrix<float, 4, 4> vertices_temp{triangle->v1, triangle->v2, triangle->v3};
+            Matrix<float, 4, 4> vertices_temp{*triangle->v1, *triangle->v2, *triangle->v3};
 
-            // Set homogeneous coordinate to 1
+            // Set vertex homogeneous coordinate to 1
             vertices_temp.set_position({1.0f, 1.0f, 1.0f});
             Matrix<float, 3, 4> vertices = (camera->getProjection() *
                                             (camera->getView() *
@@ -62,8 +62,17 @@ void Mesh::draw(Camera* camera, bool wireFrame) {
 
             bool outOfBounds = camera->toDeviceCoordinates(vertices);
             if (outOfBounds) continue;
+            triangle->setScreenSpaceVerts(vertices);
 
-            triangle->setScreenSpaceVertices(vertices);
+            if (!wireFrame) {
+                Matrix<float, 4, 4> normals_temp{*triangle->n1, *triangle->n2, *triangle->n3};
+                Matrix<float, 3, 3> normals = (camera->getView() *
+                                                (transform *
+                                                 normals_temp.transpose()))
+                                                  .transpose();
+                triangle->setScreenSpaceNormals(normals);
+            }
+           
             wireFrame ? triangle->draw() : triangle->fill();
         }
     }
@@ -82,7 +91,7 @@ void Mesh::setCenter(Vector<float, 3> center) {
     Vector<float, 4> center4 = Vector<float, 4>(center);
     for (auto& [name, obj] : objects) {
         for (auto& vertex : obj.vertices) {
-            vertex = vertex - center4;
+            *vertex = *vertex - center4;
         }
     }
 }
@@ -100,7 +109,7 @@ Vector<float, 3> Mesh::getCenterOfMass() {
     Vector<float, 3> center = {0, 0, 0};
     for (auto& [name, obj] : objects) {
         for (auto& vertex : obj.vertices) {
-            center = center + vertex;
+            center = center + *vertex;
             numPoints++;
         }
     }
@@ -112,15 +121,15 @@ void Mesh::printObjects() {
         std::cout << "\nObject: " << name << ":\n";
         std::cout << "\nVertices:\n";
         for (auto& vertex : obj.vertices) {
-            vertex.print();
+            vertex->print();
         }
         std::cout << "\nTextures:\n";
         for (auto& texture : obj.textures) {
-            texture.print();
+            texture->print();
         }
         std::cout << "\nNormals:\n";
         for (auto& normal : obj.normals) {
-            normal.print();
+            normal->print();
         }
         int i = 0;
         std::cout << "\nTriangles:\n";
@@ -128,7 +137,17 @@ void Mesh::printObjects() {
             std::cout << "\nTriangle: " << ++i << " \n";
             triangle->print();
         }
-        std::cout << std::endl;
+    }
+}
+
+void Mesh::printTriangles() {
+    for (auto& [name, obj] : objects) {
+        std::cout << "\nObject: " << name << ":\n";
+        int i = 0;
+        for (auto& triangle : obj.triangles) {
+            std::cout << "\nTriangle: " << ++i << " \n";
+            triangle->print();
+        }
     }
 }
 

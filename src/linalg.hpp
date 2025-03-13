@@ -3,13 +3,14 @@
 #include <array>
 #include <initializer_list>
 #include <iostream>
+#include <math.h>
 
 template <typename T, size_t N>
 class Vector {
-    private:
+   private:
     std::array<T, N> data;
 
-    public:
+   public:
     /**
      * Default constructor for the Vector class.
      * Initializes all elements to the default value of the specified type T.
@@ -28,8 +29,10 @@ class Vector {
     Vector(std::initializer_list<T> values) {
         size_t i = 0;
         for (const auto& value : values) {
-            if (i < N) data[i++] = value;
-            else break;
+            if (i < N)
+                data[i++] = value;
+            else
+                break;
         }
     }
 
@@ -164,7 +167,7 @@ class Vector {
         }
         return result;
     }
-    
+
     /**
      * Computes the remainder of this Vector divided by a scalar value.
      * For integral types, the remainder is computed using the %
@@ -177,8 +180,10 @@ class Vector {
     Vector operator%(const T& scalar) const {
         Vector result;
         for (size_t i = 0; i < N; ++i) {
-            if constexpr (std::is_integral_v<T>) result[i] = data[i] % scalar;
-            else result[i] = fmod(data[i], scalar);
+            if constexpr (std::is_integral_v<T>)
+                result[i] = data[i] % scalar;
+            else
+                result[i] = fmod(data[i], scalar);
         }
         return result;
     }
@@ -199,6 +204,21 @@ class Vector {
             result += data[i] * other[i];
         }
         return result;
+    }
+
+    /**
+     * Computes the cross product of this Vector and another Vector.
+     * The cross product is only defined for 3D vectors.
+     *
+     * @param other The other Vector to compute the cross product with.
+     * @return The cross product of the two input Vectors.
+     * @note This function is only implemented for 3D vectors.
+     */
+    Vector<T, 3> cross(const Vector& other) const {
+        static_assert(N == 3, "Cross product is only defined for 3D vectors");
+        return Vector<T, 3>{data[1] * other[2] - data[2] * other[1],
+                            data[2] * other[0] - data[0] * other[2],
+                            data[0] * other[1] - data[1] * other[0]};
     }
 
     /**
@@ -229,6 +249,18 @@ class Vector {
     }
 
     /**
+     * Computes the normalized version of this Vector.
+     *
+     * The normalized version of a Vector is the Vector divided by its Euclidean norm.
+     * The Euclidean norm is the square root of the sum of the squares of the elements of the Vector.
+     *
+     * @return The normalized version of this Vector.
+     */
+    Vector<T, N> normalize() const {
+        return *this / this->norm();
+    }
+
+    /**
      * Returns the size of the Vector.
      *
      * The size of a Vector is the number of elements in the Vector.
@@ -237,14 +269,38 @@ class Vector {
     size_t size() const {
         return N;
     }
+
+    /**
+     * Checks if all elements of the Vector are true.
+     *
+     * @return True if all elements of the Vector are true, false otherwise.
+     */
+    bool all() const {
+        for (size_t i = 0; i < N; ++i) {
+            if (!data[i]) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Checks if any element of the Vector is true.
+     *
+     * @return True if any element of the Vector is true, false otherwise.
+     */
+    bool any() const {
+        for (size_t i = 0; i < N; ++i) {
+            if (data[i]) return true;
+        }
+        return false;
+    }
 };
 
 template <typename T, size_t N, size_t M>
 class Matrix {
-    private:
+   private:
     Vector<Vector<T, M>, N> data;
 
-    public:
+   public:
     /**
      * Constructs a new Matrix as the identity matrix.
      *
@@ -269,8 +325,10 @@ class Matrix {
     Matrix(std::initializer_list<Vector<T, S>> values) {
         size_t i = 0;
         for (const auto& row : values) {
-            if (i < N) data[i++] = Vector<T, M>(row);
-            else break;
+            if (i < N)
+                data[i++] = Vector<T, M>(row);
+            else
+                break;
         }
     }
 
@@ -286,8 +344,10 @@ class Matrix {
     Matrix(std::initializer_list<std::initializer_list<T>> values) {
         size_t i = 0;
         for (const auto& row : values) {
-            if (i < N) data[i++] = Vector<T, M>(row);
-            else break;
+            if (i < N)
+                data[i++] = Vector<T, M>(row);
+            else
+                break;
         }
     }
 
@@ -396,7 +456,7 @@ class Matrix {
         std::cout << "]" << std::endl;
     }
 
-        /**
+    /**
      * Sets the position vector of this Matrix to the specified value.
      *
      * This function sets the last column of the matrix, excluding the homogeneous
@@ -480,9 +540,15 @@ class Matrix {
         T sx = sin(angles[0]), sy = sin(angles[1]), sz = sin(angles[2]);
         T cx = cos(angles[0]), cy = cos(angles[1]), cz = cos(angles[2]);
 
-        data[0][0] = cy * cz;   data[0][1] = cz * sx * sy - cx * sz;    data[0][2] = cx * cz * sy + sx * sz;
-        data[1][0] = cy * sz;   data[1][1] = cx * cz + sx * sy * sz;    data[1][2] = -cz * sx + cx * sy * sz;
-        data[2][0] = -sy;       data[2][1] = cy * sx;                   data[2][2] = cx * cy;
+        data[0][0] = cy * cz;
+        data[0][1] = cz * sx * sy - cx * sz;
+        data[0][2] = cx * cz * sy + sx * sz;
+        data[1][0] = cy * sz;
+        data[1][1] = cx * cz + sx * sy * sz;
+        data[1][2] = -cz * sx + cx * sy * sz;
+        data[2][0] = -sy;
+        data[2][1] = cy * sx;
+        data[2][2] = cx * cy;
     }
 
     /**
@@ -494,7 +560,7 @@ class Matrix {
      *
      * The rotation matrix is calculated using the following formulas:
      *
-     *   R = R_y * R_x
+     *   R = R_x * R_y
      *
      *   R_x = [ 1,  0,    0  ]
      *         [ 0,  cx, -sx ]
@@ -508,12 +574,17 @@ class Matrix {
      */
     void set_view(const Vector<T, 2>& rotation) {
         static_assert(N >= 3 && M >= 3, "Rotation matrix must be at least 3x3");
-        T sp = sin(rotation[0]), cp = cos(rotation[0]); // pitch
-        T sy = sin(rotation[1]), cy = cos(rotation[1]); // yaw
+        T sp = sin(rotation[0]), cp = cos(rotation[0]);  // pitch
+        T sy = sin(rotation[1]), cy = cos(rotation[1]);  // yaw
 
-        data[0][0] = cy;        data[0][1] = 0;     data[0][2] = sy;
-        data[1][0] = sp * sy;   data[1][1] = cp;    data[1][2] = -sp * cy;
-        data[2][0] = -cp * sy;  data[2][1] = sp;    data[2][2] = cp * cy;
+        data[0][0] = cy;
+        data[0][1] = 0;
+        data[0][2] = sy;
+        data[1][0] = sp * sy;
+        data[1][1] = cp;
+        data[1][2] = -sp * cy;
+        data[2][0] = -cp * sy;
+        data[2][1] = sp;
+        data[2][2] = cp * cy;
     }
 };
-

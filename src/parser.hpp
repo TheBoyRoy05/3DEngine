@@ -20,8 +20,8 @@ class Parser {
     }
 
     std::vector<std::string> findFilesOfType(const std::string& folderPath, const std::string& fileType);
-    void parseMTL(const std::string& path);
-    void parseOBJ(const std::string& path);
+    void parseFile(const std::string& path);
+    void parseMTLLine(std::stringstream& ss, std::string& folderPath, std::string& currMtl);
     void parseOBJLine(std::stringstream& ss, std::string& currObj, std::string& currMtl);
     void parseFace(std::stringstream& ss, std::string& currObj, std::string& currMtl);
 
