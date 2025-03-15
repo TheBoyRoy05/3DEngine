@@ -121,7 +121,7 @@ int main() {
         lastTime = currentTime;
         
         bool eventHandled = handleEvents(&event, deltaTime);
-        if (!eventHandled || State::paused) continue;
+        if (State::paused) continue;
         std::cout << "FPS: " << (deltaTime > 0 ? 1.0f / deltaTime : 0) << std::endl;
 
         window.clear();

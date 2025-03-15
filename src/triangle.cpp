@@ -165,68 +165,102 @@ void Triangle::fill() {
     Vector<float, 3> delta_col = Vector<float, 3>{sv2[1] - sv3[1], sv3[1] - sv1[1], sv1[1] - sv2[1]} * inv_twice_area;
     Vector<float, 3> delta_row = Vector<float, 3>{sv3[0] - sv2[0], sv1[0] - sv3[0], sv2[0] - sv1[0]} * inv_twice_area;
     Vector<float, 3> coord_init = Vector<float, 3>{edge_cross(sv2, sv3, v[0]), edge_cross(sv3, sv1, v[0]), edge_cross(sv1, sv2, v[0])} * inv_twice_area;
-    Vector<float, 3> coord = coord_init;
 
     // Perspective-correct interpolation setup
     Vector<float, 3> zinv = {1 / sv1[3], 1 / sv2[3], 1 / sv3[3]};
     Matrix<float, 3, 3> pn = Matrix<float, 3, 3>({sn1 * zinv[0], sn2 * zinv[1], sn3 * zinv[2]}).transpose();
     // Matrix<float, 2, 3> puv = Matrix<float, 3, 2>({*uv1 * zinv[0], *uv2 * zinv[1], *uv3 * zinv[2]}).transpose();
 
+    auto shader = [&](Vector<float, 3> coord, int x, int y, bool isTop) -> bool {
+        if (x < 0 || x >= width || y < 0 || y >= height) return false;
+        if (coord[0] < -1 || coord[1] < -1 || coord[2] < -1) return false;
+    
+        float z = 1 / coord.dot(zinv);
+        int bufferIndex = x + y * width;
+        if (z > window.getDepthBuffer()->at(bufferIndex) + 1e-6) return false;
+        window.getDepthBuffer()->at(bufferIndex) = z;
+        
+        // Texture Shader
+        // Vector<float, 2> uv = puv * coord * z;
+        // drawPixel(x, y, sample(uv));
+
+        // Lighting
+        // Vector<float, 3> normal = (pn * coord * z).normalize();
+        // int c = CLAMP(normal.dot({0, 0, -1}) * 255, 0, 255);
+        // drawPixel(x, y, RGBA(c, c, c, 255));
+
+        Vector<float, 3> normal = (pn * coord * z).normalize();
+        Vector<float, 3> c = normal * 255;
+        drawPixel(x, y, RGBA(int(abs(c[0])), int(abs(c[1])), int(abs(c[2])), 255));
+    
+        return true;
+    };
+
+    // bool middleIsOnLeft = dx1 < dx2;
+    // float ds = middleIsOnLeft ? dx1 : dx2;
+    // float de = middleIsOnLeft ? dx2 : dx1;
+    // float xs = v[0][0] - ds, xe = v[0][0] - de;
+
+    // // Parallelize loop over scanlines
+    // #pragma omp parallel for schedule(dynamic)
+    // for (int y = static_cast<int>(v[0][1]); y <= static_cast<int>(v[2][1]); y++) {
+    //     if (y < v[1][1]) { 
+    //         xs += ds;
+    //         xe += de;
+    //     } else {
+    //         ds = middleIsOnLeft ? dx3 : dx2;
+    //         de = middleIsOnLeft ? dx2 : dx3;
+    //         xs += ds;
+    //         xe += de;
+    //     }
+
+    //     int x_start = std::floor(xs);
+    //     int x_end = std::ceil(xe);
+
+    //     Vector<float, 3> coord = coord_init + delta_col * (x_start - v[0][0] - 1) + delta_row * (y - v[0][1]);
+
+    //     #pragma omp parallel for schedule(dynamic)
+    //     for (int x = x_start; x <= x_end; x++) {
+    //         coord = coord + delta_col;
+    //         shader(coord, x, y);
+    //     }
+    // }
+
+    // Fill first part of the triangle (flat-bottom)
     bool middleIsOnLeft = dx1 < dx2;
     float ds = middleIsOnLeft ? dx1 : dx2;
     float de = middleIsOnLeft ? dx2 : dx1;
     float xs = v[0][0] - ds, xe = v[0][0] - de;
 
-    // Fill first part of the triangle (flat-bottom)
-    for (int y = v[0][1]; y <= v[1][1]; y++) {
+    for (int y = std::round(v[0][1]); y < std::round(v[1][1]); y++) {
         xs += ds;
         xe += de;
         int x_start = std::floor(xs), x_end = std::ceil(xe);
-        coord = coord_init + delta_col * (x_start - v[0][0] - 1) + delta_row * (y - v[0][1]);
+        Vector<float, 3> coord = coord_init + delta_col * (x_start - v[0][0] - 1) + delta_row * (y - v[0][1]);
         
         if (y < 0 || y >= height) continue;
         for (int x = x_start; x <= x_end; x++) {
             coord = coord + delta_col;
-            if (x < 0 || x >= width) continue;
-            if (coord[0] < -1 || coord[1] < -1 || coord[2] < -1) continue;
-
-            float z = 1 / coord.dot(zinv);
-            int bufferIndex = x + y * width;
-            if (z > window.getDepthBuffer()->at(bufferIndex) + 1e-6) continue;
-            window.getDepthBuffer()->at(bufferIndex) = z;
-
-            Vector<float, 3> normal = (pn * coord * z).normalize();
-            Vector<float, 3> c = normal * 255;
-            drawPixel(x, y, RGBA(int(abs(c[0])), int(abs(c[1])), int(abs(c[2])), 255));
+            if (!shader(coord, x, y, true)) continue;
         }
     }
 
+    // Fill second part of the triangle (flat-top)
     ds = middleIsOnLeft ? dx3 : dx2;
     de = middleIsOnLeft ? dx2 : dx3;
     if (middleIsOnLeft) xs = v[1][0] - ds;
     else xe = v[1][0] - de;
 
-    // Fill second part of the triangle (flat-top)
-    for (int y = v[1][1]; y <= v[2][1]; y++) {
+    for (int y = std::round(v[1][1]); y <= std::round(v[2][1]); y++) {
         xs += ds;
         xe += de;
         int x_start = std::floor(xs), x_end = std::ceil(xe);
-        coord = coord_init + delta_col * (x_start - v[0][0] - 1) + delta_row * (y - v[0][1]);
+        Vector<float, 3> coord = coord_init + delta_col * (x_start - v[0][0] - 1) + delta_row * (y - v[0][1]);
 
         if (y < 0 || y >= height) continue;
         for (int x = x_start; x <= x_end; x++) {
             coord = coord + delta_col;
-            if (x < 0 || x >= width) continue;
-            if (coord[0] < 0 || coord[1] < 0 || coord[2] < 0) continue;
-
-            float z = 1 / coord.dot(zinv);
-            int bufferIndex = x + y * width;
-            if (z > window.getDepthBuffer()->at(bufferIndex) + 1e-6) continue;
-            window.getDepthBuffer()->at(bufferIndex) = z;
-
-            Vector<float, 3> normal = (pn * coord * z).normalize();
-            Vector<float, 3> c = normal * 255;
-            drawPixel(x, y, RGBA(int(abs(c[0])), int(abs(c[1])), int(abs(c[2])), 255));
+            if (!shader(coord, x, y, false)) continue;
         }
     }
 }
