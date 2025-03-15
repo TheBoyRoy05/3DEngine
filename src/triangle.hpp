@@ -62,6 +62,8 @@ class Triangle {
     };
 
     void draw();
+    uint32_t fragmentShader(int x, int y, float z, Vector<float, 2>& uv, Vector<float, 3>& n);
+    void getXBounds(std::vector<Vector<float, 3>>& v, int x_starts[], int x_ends[]);
     void fill();
 
     void print();
