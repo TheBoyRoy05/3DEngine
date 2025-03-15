@@ -19,9 +19,9 @@ class Triangle {
     private:
     Window& window;
 
-    float edge_cross(const Vector<float, 2>& v1, const Vector<float, 2>& v2, const Vector<float, 2>& v3) {
-        Vector<float, 2> edge1 = v2 - v1;
-        Vector<float, 2> edge2 = v3 - v1;
+    float edge_cross(const Vector<float, 2>& v0, const Vector<float, 2>& v1, const Vector<float, 2>& v2) {
+        Vector<float, 2> edge1 = v1 - v0;
+        Vector<float, 2> edge2 = v2 - v0;
         return edge1[0] * edge2[1] - edge1[1] * edge2[0];
     };
 
@@ -63,7 +63,6 @@ class Triangle {
 
     void draw();
     void fill();
-    Vector<float, 3> computeBarycentric(Vector<float, 4>& v0, Vector<float, 4>& v1, Vector<float, 4>& v2, float x, float y);
 
     void print();
 };
