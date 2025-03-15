@@ -68,10 +68,12 @@ Vector<float, 2> MousePos() {
     return Vector<float, 2>({float(MouseY), float(MouseX)});
 }
 
-void handleEvents(SDL_Event* event, float deltaTime) {
+bool handleEvents(SDL_Event* event, float deltaTime) {
     Camera* camera = Engine::camera.get();
     
+    bool eventHandled = false;
     while (SDL_PollEvent(event)) {
+        eventHandled = true;
         if (event->type == SDL_QUIT) State::running = false;
 
         if (event->type == SDL_MOUSEBUTTONDOWN && event->button.button == SDL_BUTTON_LEFT) State::mouseDown = true;
@@ -103,6 +105,8 @@ void handleEvents(SDL_Event* event, float deltaTime) {
             if (event->key.keysym.sym == SDLK_LSHIFT) Settings::speed = Settings::baseSpeed;
         }
     }
+
+    return eventHandled;
 }
 
 int main() {
@@ -115,10 +119,10 @@ int main() {
         uint32_t currentTime = SDL_GetTicks();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
-        // std::cout << "FPS: " << (deltaTime > 0 ? 1.0f / deltaTime : 0) << std::endl;
-
-        handleEvents(&event, deltaTime);
-        if (State::paused) continue;
+        
+        bool eventHandled = handleEvents(&event, deltaTime);
+        if (!eventHandled || State::paused) continue;
+        std::cout << "FPS: " << (deltaTime > 0 ? 1.0f / deltaTime : 0) << std::endl;
 
         window.clear();
         Engine::update(deltaTime);

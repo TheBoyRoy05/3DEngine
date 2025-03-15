@@ -31,14 +31,14 @@ class Triangle {
 
     float lerp(float a, float b, float t) { return a + (b - a) * t; };
     uint32_t sample(Vector<float, 2>& uv);
-    
+
     void drawPixel(int x, int y, uint32_t color);
     void drawLine(const Vector<float, 3>& v1, const Vector<float, 3>& v2);
 
     public:
-    const Vector<float, 3>* v1, *v2, *v3;
-    const Vector<float, 2>* uv1, *uv2, *uv3;
-    const Vector<float, 3>* n1, *n2, *n3;
+    const Vector<float, 3>*v1, *v2, *v3;
+    const Vector<float, 2>*uv1, *uv2, *uv3;
+    const Vector<float, 3>*n1, *n2, *n3;
     const Material& material;
 
     Vector<float, 4> sv1, sv2, sv3;
@@ -63,6 +63,7 @@ class Triangle {
 
     void draw();
     void fill();
+    Vector<float, 3> computeBarycentric(Vector<float, 4>& v0, Vector<float, 4>& v1, Vector<float, 4>& v2, float x, float y);
 
     void print();
 };
