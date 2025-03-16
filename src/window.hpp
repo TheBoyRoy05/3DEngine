@@ -1,5 +1,7 @@
 #pragma once
 
+#include "linalg.hpp"
+
 #include <SDL2/SDL.h>
 #include <vector>
 #include <memory>
@@ -21,6 +23,8 @@ public:
     SDL_Window* getWindow() { return window; }
     SDL_Renderer* getRenderer() { return renderer; }
     std::shared_ptr<std::vector<float>> getDepthBuffer() { return depth_buffer; }
+
+    Vector<float, 4> toDeviceCoordinates(Vector<float, 4> vertex);
 
     void render() { SDL_RenderPresent(renderer); }
     void clear();

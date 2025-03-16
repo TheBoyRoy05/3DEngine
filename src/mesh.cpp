@@ -13,7 +13,7 @@
  *
  * @param modelPath The path to the model file to be loaded.
  */
-Mesh::Mesh(const std::string& modelPath) {
+Mesh::Mesh(const std::string& modelPath) : window(Window::getInstance()) {
     Parser parser(objects, materials);
     parser.parse(modelPath);
     this->setCenter(this->getCenterOfMass());
@@ -49,30 +49,22 @@ Mesh::~Mesh() {
  */
 void Mesh::draw(Camera* camera, bool wireFrame) {
     for (auto& [name, obj] : objects) {
-        for (auto& triangle : obj.triangles) {
-            Matrix<float, 4, 4> vertices_temp{*triangle->v1, *triangle->v2, *triangle->v3};
+        const Matrix<float, 4, 4> viewTransform = camera->getView() * transform;
+        const Matrix<float, 4, 4> fullTransform = camera->getProjection() * viewTransform;
 
-            // Set vertex homogeneous coordinate to 1
-            vertices_temp.set_position({1.0f, 1.0f, 1.0f});
-            Matrix<float, 3, 4> vertices = (camera->getProjection() *
-                                            (camera->getView() *
-                                             (transform *
-                                              vertices_temp.transpose())))
-                                               .transpose();
+        for (size_t i = 1; i < obj.modelVertices.size(); i++) {
+            Vector<float, 4> vertex = obj.modelVertices[i];
+            vertex[3] = 1.0f;
+            obj.vertices[i] = window.toDeviceCoordinates(fullTransform * vertex);
+        }
 
-            bool outOfBounds = camera->toDeviceCoordinates(vertices);
-            if (outOfBounds) continue;
-            triangle->setScreenSpaceVerts(vertices);
-
-            if (!wireFrame) {
-                Matrix<float, 4, 4> normals_temp{*triangle->n1, *triangle->n2, *triangle->n3};
-                Matrix<float, 3, 3> normals = (camera->getView() *
-                                                (transform *
-                                                 normals_temp.transpose()))
-                                                  .transpose();
-                triangle->setScreenSpaceNormals(normals);
+        if (!wireFrame) {
+            for (size_t i = 1; i < obj.modelNormals.size(); i++) {
+                obj.normals[i] = (viewTransform * obj.modelNormals[i]).normalize();
             }
-           
+        }
+        
+        for (auto& triangle : obj.triangles) {
             wireFrame ? triangle->draw() : triangle->fill();
         }
     }
@@ -90,8 +82,8 @@ void Mesh::draw(Camera* camera, bool wireFrame) {
 void Mesh::setCenter(Vector<float, 3> center) {
     Vector<float, 4> center4 = Vector<float, 4>(center);
     for (auto& [name, obj] : objects) {
-        for (auto& vertex : obj.vertices) {
-            *vertex = *vertex - center4;
+        for (size_t i = 1; i < obj.modelVertices.size(); i++) {
+            obj.modelVertices[i] = obj.modelVertices[i] - center4;
         }
     }
 }
@@ -108,11 +100,12 @@ Vector<float, 3> Mesh::getCenterOfMass() {
     int numPoints = 0;
     Vector<float, 3> center = {0, 0, 0};
     for (auto& [name, obj] : objects) {
-        for (auto& vertex : obj.vertices) {
-            center = center + *vertex;
+        for (size_t i = 1; i < obj.modelVertices.size(); i++) {
+            center = center + obj.modelVertices[i];
             numPoints++;
         }
     }
+
     return center / numPoints;
 }
 
@@ -120,16 +113,16 @@ void Mesh::printObjects() {
     for (auto& [name, obj] : objects) {
         std::cout << "\nObject: " << name << ":\n";
         std::cout << "\nVertices:\n";
-        for (auto& vertex : obj.vertices) {
-            vertex->print();
+        for (auto& vertex : obj.modelVertices) {
+            vertex.print();
         }
         std::cout << "\nTextures:\n";
         for (auto& texture : obj.textures) {
-            texture->print();
+            texture.print();
         }
         std::cout << "\nNormals:\n";
-        for (auto& normal : obj.normals) {
-            normal->print();
+        for (auto& normal : obj.modelNormals) {
+            normal.print();
         }
         int i = 0;
         std::cout << "\nTriangles:\n";

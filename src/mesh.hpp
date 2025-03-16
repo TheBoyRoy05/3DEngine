@@ -8,9 +8,11 @@
 #include "linalg.hpp"
 #include "material.hpp"
 #include "object.hpp"
+#include "window.hpp"
 
 class Mesh {
     private:
+    Window& window;
     std::unordered_map<std::string, Object> objects;
     std::unordered_map<std::string, Material> materials;
 

@@ -17,6 +17,21 @@ Window::Window(int width, int height, uint32_t bgColor): bgColor(bgColor) {
     depth_buffer = std::make_shared<std::vector<float>>(width * height, FLOAT_MAX);
 }
 
+Vector<float, 4> Window::toDeviceCoordinates(Vector<float, 4> vertex) {
+    int width, height;
+    SDL_GetWindowSize(window, &width, &height);
+
+    float temp = vertex[3];
+    vertex = vertex / vertex[3];
+    
+    vertex[0] = (width + vertex[0] * std::max(width, height)) / 2.0f;
+    vertex[1] = (height - vertex[1] * std::max(width, height)) / 2.0f;
+    vertex[2] = temp;
+
+    return vertex;
+}
+
+
 Window& Window::getInstance(int width, int height, uint32_t bgColor) {
     static Window instance(width, height, bgColor);
     return instance;

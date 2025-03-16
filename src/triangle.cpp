@@ -1,11 +1,25 @@
 #include "triangle.hpp"
 
-#include <omp.h>
 #include <SDL2/SDL_image.h>
+#include <omp.h>
+
+#include "object.hpp"
 
 #define RGBA(r, g, b, a) ((r & 0xFF) << 24 | (g & 0xFF) << 16 | (b & 0xFF) << 8 | (a & 0xFF))
 #define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
 #define MISSING_COLOR RGBA(255, 255, 255, 255)
+
+const Vector<float, 3>& Triangle::V(uint32_t i) const { return object.vertices[vidx[i]]; }
+const Vector<float, 2>& Triangle::T(uint32_t i) const { return object.textures[uvidx[i]]; }
+const Vector<float, 3>& Triangle::N(uint32_t i) const { return object.normals[nidx[i]]; }
+
+bool Triangle::AllOutOfBounds() {
+    int w, h;
+    SDL_GetWindowSize(window.getWindow(), &w, &h);
+    return !inBounds(V(0)[0], V(0)[1], w, h) &&
+           !inBounds(V(1)[0], V(1)[1], w, h) &&
+           !inBounds(V(2)[0], V(2)[1], w, h);
+};
 
 void Triangle::drawPixel(int x, int y, uint32_t color) {
     SDL_SetRenderDrawColor(window.getRenderer(), R(color), G(color), B(color), A(color));
@@ -49,26 +63,30 @@ uint32_t Triangle::sample(Vector<float, 2>& uv) {
  * @param v2 The second point on the line.
  */
 void Triangle::drawLine(const Vector<float, 3>& v1, const Vector<float, 3>& v2) {
-    int x0 = v1[0], y0 = v1[1];
+    int x = v1[0], y = v1[1];
     int x1 = v2[0], y1 = v2[1];
-    int dx = abs(x1 - x0);
-    int dy = abs(y1 - y0);
-    int sx = (x0 < x1) ? 1 : -1;
-    int sy = (y0 < y1) ? 1 : -1;
+
+    int dx = abs(x1 - x);
+    int dy = abs(y1 - y);
+    int sx = (x < x1) ? 1 : -1;
+    int sy = (y < y1) ? 1 : -1;
     int err = dx - dy;
 
-    while (true) {
-        drawPixel(x0, y0, 0xFF0000FF);
+    int width, height;
+    SDL_GetWindowSize(window.getWindow(), &width, &height);
 
-        if (x0 == x1 && y0 == y1) break;
+    while (true) {
+        if (inBounds(x, y, width, height)) drawPixel(x, y, 0xFF0000FF);
+
+        if (x == x1 && y == y1) break;
         int e2 = 2 * err;
         if (e2 > -dy) {
             err -= dy;
-            x0 += sx;
+            x += sx;
         }
         if (e2 < dx) {
             err += dx;
-            y0 += sy;
+            y += sy;
         }
     }
 }
@@ -77,20 +95,20 @@ void Triangle::drawLine(const Vector<float, 3>& v1, const Vector<float, 3>& v2) 
  * Draws the triangle by drawing a line between each pair of its vertices.
  */
 void Triangle::draw() {
-    drawLine(sv1, sv2);
-    drawLine(sv2, sv3);
-    drawLine(sv3, sv1);
+    drawLine(V(0), V(1));
+    drawLine(V(1), V(2));
+    drawLine(V(2), V(0));
 }
 
-uint32_t Triangle::fragmentShader(int x, int y, float z, Vector<float, 2>&uv, Vector<float, 3>& n) {
+uint32_t Triangle::fragmentShader(int x, int y, float z, Vector<float, 2>& uv, Vector<float, 3>& n) {
     // Texture Shader
     // Vector<float, 2> uv = puv * coord * z;
     // uint32_t color = sample(uv);
 
-    // Lighting Shader 
+    // Lighting Shader
     // int c = CLAMP(n.dot({0, 0, 1}) * 255, 0, 255);
     // uint32_t color = RGBA(c, c, c, 255);
-    
+
     // Direction Shader
     Vector<float, 3> c = n * 255;
     uint32_t color = RGBA(int(abs(c[0])), int(abs(c[1])), int(abs(c[2])), 255);
@@ -98,7 +116,7 @@ uint32_t Triangle::fragmentShader(int x, int y, float z, Vector<float, 2>&uv, Ve
     return color;
 }
 
-void Triangle::getXBounds(std::vector<Vector<float, 3>>& v, int x_starts[], int x_ends[]) {
+void Triangle::getXBounds(Vector<float, 3> v[3], int x_starts[], int x_ends[]) {
     float dx1 = (v[1][0] - v[0][0]) / (v[1][1] - v[0][1] + 1e-6);
     float dx2 = (v[2][0] - v[0][0]) / (v[2][1] - v[0][1] + 1e-6);
     float dx3 = (v[2][0] - v[1][0]) / (v[2][1] - v[1][1] + 1e-6);
@@ -121,8 +139,10 @@ void Triangle::getXBounds(std::vector<Vector<float, 3>>& v, int x_starts[], int 
 
     ds = middleIsOnLeft ? dx3 : dx2;
     de = middleIsOnLeft ? dx2 : dx3;
-    if (middleIsOnLeft) xs = v[1][0];
-    else xe = v[1][0];
+    if (middleIsOnLeft)
+        xs = v[1][0];
+    else
+        xe = v[1][0];
 
     for (int y = y_mid; y <= y_end; y++) {
         x_starts[y - y_start] = std::floor(xs);
@@ -133,7 +153,8 @@ void Triangle::getXBounds(std::vector<Vector<float, 3>>& v, int x_starts[], int 
 }
 
 void Triangle::fill() {
-    float twice_area = edge_cross(sv1, sv2, sv3);
+    if (AllOutOfBounds()) return;
+    float twice_area = edge_cross(V(0), V(1), V(2));
     if (twice_area > -1) return;
     const float inv_twice_area = 1.0f / twice_area;
 
@@ -141,21 +162,21 @@ void Triangle::fill() {
     SDL_GetWindowSize(window.getWindow(), &width, &height);
 
     // Sort vertices by y-coordinate (top to bottom)
-    std::vector<Vector<float, 3>> v {sv1, sv2, sv3};
+    Vector<float, 3> v[] = {V(0), V(1), V(2)};
     if (v[0][1] > v[1][1]) std::swap(v[0], v[1]);
     if (v[1][1] > v[2][1]) std::swap(v[1], v[2]);
     if (v[0][1] > v[1][1]) std::swap(v[0], v[1]);
 
     // Barycentric coordinates
-    Vector<float, 3> delta_col = Vector<float, 3>{sv2[1] - sv3[1], sv3[1] - sv1[1], sv1[1] - sv2[1]} * inv_twice_area;
-    Vector<float, 3> delta_row = Vector<float, 3>{sv3[0] - sv2[0], sv1[0] - sv3[0], sv2[0] - sv1[0]} * inv_twice_area;
-    Vector<float, 3> coord_init = Vector<float, 3>{edge_cross(sv2, sv3, v[0]), edge_cross(sv3, sv1, v[0]), edge_cross(sv1, sv2, v[0])} * inv_twice_area;
+    Vector<float, 3> delta_col = Vector<float, 3>{V(1)[1] - V(2)[1], V(2)[1] - V(0)[1], V(0)[1] - V(1)[1]} * inv_twice_area;
+    Vector<float, 3> delta_row = Vector<float, 3>{V(2)[0] - V(1)[0], V(0)[0] - V(2)[0], V(1)[0] - V(0)[0]} * inv_twice_area;
+    Vector<float, 3> coord_init = Vector<float, 3>{edge_cross(V(1), V(2), v[0]), edge_cross(V(2), V(0), v[0]), edge_cross(V(0), V(1), v[0])} * inv_twice_area;
 
     // Perspective-correct interpolation setup
-    Vector<float, 3> zinv = {1 / sv1[3], 1 / sv2[3], 1 / sv3[3]};
-    Matrix<float, 3, 3> pn = Matrix<float, 3, 3>({sn1 * zinv[0], sn2 * zinv[1], sn3 * zinv[2]}).transpose();
-    Matrix<float, 2, 3> puv = Matrix<float, 3, 2>({*uv1 * zinv[0], *uv2 * zinv[1], *uv3 * zinv[2]}).transpose();
-    
+    Vector<float, 3> zinv = {1 / V(0)[2], 1 / V(1)[2], 1 / V(2)[2]};
+    Matrix<float, 3, 3> pn = Matrix<float, 3, 3>({N(0) * zinv[0], N(1) * zinv[1], N(2) * zinv[2]}).transpose();
+    Matrix<float, 2, 3> puv = Matrix<float, 3, 2>({T(0) * zinv[0], T(1) * zinv[1], T(2) * zinv[2]}).transpose();
+
     struct Pixel {
         int x, y;
         uint32_t color;
@@ -168,18 +189,18 @@ void Triangle::fill() {
     int x_starts[y_end - y_start + 1];
     int x_ends[y_end - y_start + 1];
     getXBounds(v, x_starts, x_ends);
-    
-    #pragma omp parallel for schedule(dynamic)
+
+#pragma omp parallel for schedule(dynamic)
     for (int y = y_start; y <= y_end; y++) {
         int x_start = x_starts[y - y_start];
         int x_end = x_ends[y - y_start];
-    
+
         Vector<float, 3> coord = coord_init + delta_col * (x_start - v[0][0] - 1) + delta_row * (y - v[0][1]);
         for (int x = x_start; x <= x_end; x++) {
             coord = coord + delta_col;
             if (x < 0 || x >= width || y < 0 || y >= height) continue;
             if (coord[0] < -1 || coord[1] < -1 || coord[2] < -1) continue;
-        
+
             float z = 1 / coord.dot(zinv);
             int bufferIndex = x + y * width;
             if (z > window.getDepthBuffer()->at(bufferIndex) + 1e-6) continue;
@@ -192,12 +213,12 @@ void Triangle::fill() {
             if (color) thread_pixels[omp_get_thread_num()].push_back({x, y, color});
         }
     }
-    
+
     // Merge all thread-local vectors into the global pixels vector
     for (const auto& thread_pixel : thread_pixels) {
         pixels.insert(pixels.end(), thread_pixel.begin(), thread_pixel.end());
     }
-    
+
     // Now render the pixels
     for (const auto& pixel : pixels) {
         drawPixel(pixel.x, pixel.y, pixel.color);
@@ -205,17 +226,17 @@ void Triangle::fill() {
 }
 
 void Triangle::print() {
-    std::cout << "Vertices:\n";
-    v1->print();
-    v2->print();
-    v3->print();
-    std::cout << "\nTextures:\n";
-    uv1->print();
-    uv2->print();
-    uv3->print();
-    std::cout << "\nNormals:\n";
-    n1->print();
-    n2->print();
-    n3->print();
+    std::cout << "Vertices: " << vidx[0] << ", " << vidx[1] << ", " << vidx[2] << "\n";
+    V(0).print();
+    V(1).print();
+    V(2).print();
+    std::cout << "\nTextures: " << uvidx[0] << ", " << uvidx[1] << ", " << uvidx[2] << "\n";
+    T(0).print();
+    T(1).print();
+    T(2).print();
+    std::cout << "\nNormals: " << nidx[0] << ", " << nidx[1] << ", " << nidx[2] << "\n";
+    N(0).print();
+    N(1).print();
+    N(2).print();
     std::cout << "\nMaterial: " << material.name << "\n";
 }

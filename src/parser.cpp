@@ -42,6 +42,11 @@ void Parser::parseFile(const std::string& path) {
         if (fileType == ".obj") parseOBJLine(ss, currObj, currMtl);
     }
 
+    if (fileType == ".obj") {
+        objects[currObj].modelVertices = objects[currObj].vertices;
+        objects[currObj].modelNormals = objects[currObj].normals;
+    }
+
     file.close();
 }
 
@@ -84,8 +89,17 @@ void Parser::parseOBJLine(std::stringstream& ss, std::string& currObj, std::stri
     if (prefix.empty() || prefix == "#" || prefix == "mtllib") return;
 
     if (prefix == "o") {
+        if (!currObj.empty()) {
+            objects[currObj].modelVertices = objects[currObj].vertices;
+            objects[currObj].modelNormals = objects[currObj].normals;
+        }
+
         ss >> currObj;
         objects[currObj] = Object{currObj};
+
+        objects[currObj].vertices.push_back(Vector<float, 3>{0, 0, 0});
+        objects[currObj].textures.push_back(Vector<float, 2>{0, 0});
+        objects[currObj].normals.push_back(Vector<float, 3>{0, 0, 0});
     }
 
     if (currObj.empty()) {
@@ -94,11 +108,11 @@ void Parser::parseOBJLine(std::stringstream& ss, std::string& currObj, std::stri
     }
 
     if (prefix == "v")
-        objects[currObj].vertices.push_back(std::make_unique<Vector<float, 3>>(readLine<3>(ss)));
+        objects[currObj].vertices.push_back(readLine<3>(ss));
     else if (prefix == "vt")
-        objects[currObj].textures.push_back(std::make_unique<Vector<float, 2>>(readLine<2>(ss)));
+        objects[currObj].textures.push_back(readLine<2>(ss));
     else if (prefix == "vn")
-        objects[currObj].normals.push_back(std::make_unique<Vector<float, 3>>(readLine<3>(ss)));
+        objects[currObj].normals.push_back(readLine<3>(ss));
     else if (prefix == "usemtl")
         ss >> currMtl;
 
@@ -133,47 +147,31 @@ void Parser::parseFace(std::stringstream& ss, std::string& objName, std::string&
         size_t vnidx = vn.empty() ? 0 : std::stoi(vn);
 
         // Handle negative indexing
-        if (vidx < 0) vidx += vertices.size() + 1;
-        if (!vt.empty() && vtidx < 0) vtidx += textures.size() + 1;
-        if (!vn.empty() && vnidx < 0) vnidx += normals.size() + 1;
+        if (vidx < 0) vidx += vertices.size();
+        if (!vt.empty() && vtidx < 0) vtidx += textures.size();
+        if (!vn.empty() && vnidx < 0) vnidx += normals.size();
 
         // Adjust for 0-based indexing and check validity
-        vi.push_back(vidx - 1);
-        vti.push_back(vtidx > 0 && vtidx <= textures.size() ? vtidx - 1 : UINT32_MAX);
-        vni.push_back(vnidx > 0 && vnidx <= normals.size() ? vnidx - 1 : UINT32_MAX);
+        vi.push_back(vidx > 0 && vidx <= vertices.size() ? vidx : 0);
+        vti.push_back(vtidx > 0 && vtidx <= textures.size() ? vtidx : 0);
+        vni.push_back(vnidx > 0 && vnidx <= normals.size() ? vnidx : 0);
+    }
+
+    if (vni[0] == 0) {
+        size_t newNormalIdx = normals.size();
+        normals.push_back((vertices[vi[2]] - vertices[vi[0]]).cross(vertices[vi[1]] - vertices[vi[0]]).normalize());
+
+        for (uint32_t i = 0; i < vi.size(); i++) {
+            if (vni[i] == 0) vni[i] = newNormalIdx;
+        }
     }
 
     // Create triangles
     for (uint32_t i = 1; i < vi.size() - 1; i++) {
-        // if (triangles.size() >= 10) break;
-
-        Vector<float, 2> defaultTexture;
-        Vector<float, 3> defaultNormal;
-
-        // Compute normal if any normal index is missing
-        if (vni[0] == UINT32_MAX || vni[i] == UINT32_MAX || vni[i + 1] == UINT32_MAX) {
-            auto newNormal = std::make_unique<Vector<float, 3>>(
-                ((*vertices[vi[i + 1]]) - (*vertices[vi[0]]))
-                    .cross((*vertices[vi[i]]) - (*vertices[vi[0]]))
-                    .normalize());
-
-            // Store the new normal and update missing indices
-            normals.push_back(std::move(newNormal));
-            size_t newNormalIdx = normals.size() - 1;
-            if (vni[0] == UINT32_MAX) vni[0] = newNormalIdx;
-            if (vni[i] == UINT32_MAX) vni[i] = newNormalIdx;
-            if (vni[i + 1] == UINT32_MAX) vni[i + 1] = newNormalIdx;
-        }
-
-        // Create the triangle with proper references
-        triangles.push_back(std::make_unique<Triangle>(
-            vertices[vi[0]].get(), vertices[vi[i]].get(), vertices[vi[i + 1]].get(),
-            vti[0] != UINT32_MAX ? textures[vti[0]].get() : &defaultTexture,
-            vti[i] != UINT32_MAX ? textures[vti[i]].get() : &defaultTexture,
-            vti[i + 1] != UINT32_MAX ? textures[vti[i + 1]].get() : &defaultTexture,
-            normals[vni[0]].get(),
-            normals[vni[i]].get(),
-            normals[vni[i + 1]].get(),
-            materials[mtlName]));
+        uint32_t vidx[] = {vi[0], vi[i], vi[i + 1]};
+        uint32_t uvidx[] = {vti[0], vti[i], vti[i + 1]};
+        uint32_t nidx[] = {vni[0], vni[i], vni[i + 1]};
+        
+        triangles.push_back(std::make_unique<Triangle>(vidx, uvidx, nidx, materials[mtlName], objects[objName]));
     }
 }

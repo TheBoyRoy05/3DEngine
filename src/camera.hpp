@@ -4,7 +4,6 @@
 #include <math.h>
 
 #include "linalg.hpp"
-#include "window.hpp"
 
 #define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
 
@@ -15,7 +14,6 @@ class Camera {
     Vector<float, 3> position;
     Vector<float, 2> rotation;
     float ooTan, zNear, zFar;
-    Window& window;
 
     public:
     Matrix<float, 4, 4> getView() { return this->view; }
@@ -42,6 +40,20 @@ class Camera {
         this->view.set_position(Matrix<float, 3, 3>(this->view) * this->position * -1);
     }
 
-    Camera(float fovDeg, float zNear, float zFar);
-    bool toDeviceCoordinates(Matrix<float, 3, 4>& verticies);
+    Camera(float fovDeg, float zNear, float zFar) {
+        this->zNear = zNear;
+        this->zFar = zFar;
+        this->ooTan = 1.0f / tan(fovDeg * M_PI / 360.0f);
+    
+        rotation = Vector<float, 3>();
+        view = Matrix<float, 4, 4>();
+        projection = Matrix<float, 4, 4>();
+    
+        projection[0][0] = ooTan;
+        projection[1][1] = ooTan;
+        projection[2][2] = -(zFar + zNear) / (zFar - zNear);
+        projection[2][3] = -2 * zFar * zNear / (zFar - zNear);
+        projection[3][2] = -1;
+        projection[3][3] = 0;
+    }
 };
