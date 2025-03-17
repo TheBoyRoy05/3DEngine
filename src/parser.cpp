@@ -163,7 +163,7 @@ void Parser::parseFace(std::stringstream& ss, std::string& objName, std::string&
 
     if (vni[0] == 0) {
         size_t newNormalIdx = normals.size();
-        normals.push_back((vertices[vi[2]] - vertices[vi[0]]).cross(vertices[vi[1]] - vertices[vi[0]]).normalize());
+        normals.push_back((vertices[vi[1]] - vertices[vi[0]]).cross(vertices[vi[2]] - vertices[vi[0]]).normalize());
 
         for (uint32_t i = 0; i < vi.size(); i++) {
             if (vni[i] == 0) vni[i] = newNormalIdx;

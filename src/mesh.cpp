@@ -52,14 +52,14 @@ void Mesh::draw(Camera* camera, bool wireFrame) {
         const Matrix<float, 4, 4> viewTransform = camera->getView() * transform;
         const Matrix<float, 4, 4> fullTransform = camera->getProjection() * viewTransform;
 
-        const uint32_t startTime = SDL_GetTicks();
+        // const uint32_t startTime = SDL_GetTicks();
         #pragma omp parallel for schedule(static)
         for (size_t i = 1; i < obj.modelVertices.size(); i++) {
             Vector<float, 4> vertex = obj.modelVertices[i];
             vertex[3] = 1.0f;
             obj.vertices[i] = window.toDeviceCoordinates(fullTransform * vertex);
         }
-        std::cout << "Time to transform vertices: " << SDL_GetTicks() - startTime << std::endl;
+        // std::cout << "Time to transform vertices: " << SDL_GetTicks() - startTime << std::endl;
 
         if (!wireFrame) {
             #pragma omp parallel for schedule(static)
@@ -67,13 +67,13 @@ void Mesh::draw(Camera* camera, bool wireFrame) {
                 obj.normals[i] = (viewTransform * obj.modelNormals[i]).normalize();
             }
         }
-        std::cout << "Time to transform normals: " << SDL_GetTicks() - startTime << std::endl;
+        // std::cout << "Time to transform normals: " << SDL_GetTicks() - startTime << std::endl;
         
         // #pragma omp parallel for schedule(dynamic)
         for (auto& triangle : obj.triangles) {
             wireFrame ? triangle->draw() : triangle->fill();
         }
-        std::cout << "Time to draw: " << SDL_GetTicks() - startTime << std::endl;
+        // std::cout << "Time to draw: " << SDL_GetTicks() - startTime << std::endl;
     }
 }
 

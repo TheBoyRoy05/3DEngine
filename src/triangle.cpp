@@ -102,17 +102,18 @@ void Triangle::draw() {
 }
 
 uint32_t Triangle::fragmentShader(int x, int y, float z, Vector<float, 2>& uv, Vector<float, 3>& n) {
+    uint32_t color = UINT32_MAX;
+
     // Texture Shader
-    // Vector<float, 2> uv = puv * coord * z;
-    // uint32_t color = sample(uv);
+    // color = sample(uv);
 
     // Lighting Shader
-    // int c = CLAMP(n.dot({0, 0, 1}) * 255, 0, 255);
-    // uint32_t color = RGBA(c, c, c, 255);
+    float c = CLAMP(n.dot({0, 0, 1}), 0, 1);
+    color = RGBA(int(R(color) * c), int(G(color) * c), int(B(color) * c), A(color));
 
     // Direction Shader
-    Vector<float, 3> c = n * 255;
-    uint32_t color = RGBA(int(abs(c[0])), int(abs(c[1])), int(abs(c[2])), 255);
+    // Vector<float, 3> c = n * 255;
+    // color = RGBA(int(abs(c[0])), int(abs(c[1])), int(abs(c[2])), 255);
 
     return color;
 }
