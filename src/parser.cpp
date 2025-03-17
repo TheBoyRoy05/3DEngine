@@ -105,6 +105,10 @@ void Parser::parseOBJLine(std::stringstream& ss, std::string& currObj, std::stri
     if (currObj.empty()) {
         currObj = "default";
         objects[currObj] = Object{currObj};
+
+        objects[currObj].vertices.push_back(Vector<float, 3>{0, 0, 0});
+        objects[currObj].textures.push_back(Vector<float, 2>{0, 0});
+        objects[currObj].normals.push_back(Vector<float, 3>{0, 0, 0});
     }
 
     if (prefix == "v")

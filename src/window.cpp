@@ -21,12 +21,12 @@ Vector<float, 4> Window::toDeviceCoordinates(Vector<float, 4> vertex) {
     int width, height;
     SDL_GetWindowSize(window, &width, &height);
 
-    float temp = vertex[3];
-    vertex = vertex / vertex[3];
+    float depth = vertex[3];
+    vertex = vertex / depth;
     
     vertex[0] = (width + vertex[0] * std::max(width, height)) / 2.0f;
     vertex[1] = (height - vertex[1] * std::max(width, height)) / 2.0f;
-    vertex[2] = temp;
+    vertex[2] = depth;
 
     return vertex;
 }
