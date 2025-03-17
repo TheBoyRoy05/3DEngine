@@ -1,6 +1,7 @@
 #include "triangle.hpp"
 
 #include <SDL2/SDL_image.h>
+#include <limits>
 #include <omp.h>
 
 #include "object.hpp"
@@ -139,10 +140,8 @@ void Triangle::getXBounds(Vector<float, 3> v[3], int x_starts[], int x_ends[]) {
 
     ds = middleIsOnLeft ? dx3 : dx2;
     de = middleIsOnLeft ? dx2 : dx3;
-    if (middleIsOnLeft)
-        xs = v[1][0];
-    else
-        xe = v[1][0];
+    if (middleIsOnLeft) xs = v[1][0];
+    else xe = v[1][0];
 
     for (int y = y_mid; y <= y_end; y++) {
         x_starts[y - y_start] = std::floor(xs);
@@ -177,6 +176,12 @@ void Triangle::fill() {
     Matrix<float, 3, 3> pn = Matrix<float, 3, 3>({N(0) * zinv[0], N(1) * zinv[1], N(2) * zinv[2]}).transpose();
     Matrix<float, 2, 3> puv = Matrix<float, 3, 2>({T(0) * zinv[0], T(1) * zinv[1], T(2) * zinv[2]}).transpose();
 
+    int y_start = static_cast<int>(std::round(v[0][1]));
+    int y_end = static_cast<int>(std::round(v[2][1]));
+    int x_starts[y_end - y_start + 1];
+    int x_ends[y_end - y_start + 1];
+    getXBounds(v, x_starts, x_ends);
+
     struct Pixel {
         int x, y;
         uint32_t color;
@@ -184,13 +189,7 @@ void Triangle::fill() {
     std::vector<Pixel> pixels;
     std::vector<std::vector<Pixel>> thread_pixels(omp_get_max_threads());
 
-    int y_start = static_cast<int>(std::round(v[0][1]));
-    int y_end = static_cast<int>(std::round(v[2][1]));
-    int x_starts[y_end - y_start + 1];
-    int x_ends[y_end - y_start + 1];
-    getXBounds(v, x_starts, x_ends);
-
-#pragma omp parallel for schedule(dynamic)
+// #pragma omp parallel for schedule(guided)
     for (int y = y_start; y <= y_end; y++) {
         int x_start = x_starts[y - y_start];
         int x_end = x_ends[y - y_start];
@@ -209,20 +208,17 @@ void Triangle::fill() {
             Vector<float, 2> uv = puv * coord * z;
             Vector<float, 3> normal = (pn * coord * z).normalize();
 
-            uint32_t color = fragmentShader(x, y, z, uv, normal);
-            if (color) thread_pixels[omp_get_thread_num()].push_back({x, y, color});
+            // uint32_t color = fragmentShader(x, y, z, uv, normal);
+            // if (color) thread_pixels[omp_get_thread_num()].push_back({x, y, color});
+            drawPixel(x, y, fragmentShader(x, y, z, uv, normal));
         }
     }
 
-    // Merge all thread-local vectors into the global pixels vector
-    for (const auto& thread_pixel : thread_pixels) {
-        pixels.insert(pixels.end(), thread_pixel.begin(), thread_pixel.end());
-    }
-
-    // Now render the pixels
-    for (const auto& pixel : pixels) {
-        drawPixel(pixel.x, pixel.y, pixel.color);
-    }
+    // for (const auto& thread_pixel : thread_pixels) {
+    //     for (const auto& pixel : thread_pixel) {
+    //         drawPixel(pixel.x, pixel.y, pixel.color);
+    //     }
+    // }
 }
 
 void Triangle::print() {
