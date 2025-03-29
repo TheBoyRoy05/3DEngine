@@ -105,7 +105,7 @@ uint32_t Triangle::fragmentShader(int x, int y, float z, Vector<float, 2>& uv, V
     uint32_t color = UINT32_MAX;
 
     // Texture Shader
-    // color = sample(uv);
+    color = sample(uv);
 
     // Lighting Shader
     float c = CLAMP(n.dot({0, 0, 1}), 0, 1);

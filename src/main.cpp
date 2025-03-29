@@ -44,14 +44,14 @@ namespace Engine {
 
     void setup() {
         camera = std::make_unique<Camera>(60, 0.1f, 100.0f);
-        // loadMesh("src/Assets/Grass_Block", {0.0f, 0.0f, -10.0f});
-        loadMesh("src/Assets/Utah_Teapot", {0.0f, 0.0f, -10.0f}, {0.05f, 0.05f, 0.05f});
+        loadMesh("src/Assets/Grass_Block", {0.0f, 0.0f, -10.0f});
+        // loadMesh("src/Assets/Utah_Teapot", {0.0f, 0.0f, -10.0f}, {0.05f, 0.05f, 0.05f});
     };
 
     void update(float deltaTime) {
         for (auto& mesh : meshes) {
             mesh->draw(camera.get(), false);
-            // mesh->setRotation((mesh->getRotation() + Vector<float, 3>({0.6f, 0.6f, 0.6f}) * deltaTime) % (2 * M_PI));
+            mesh->setRotation((mesh->getRotation() + Vector<float, 3>({0.6f, 0.6f, 0.6f}) * deltaTime) % (2 * M_PI));
         }
     };
 
