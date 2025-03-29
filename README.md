@@ -27,6 +27,7 @@ If you don't want to touch any code, you can also just download the engine.exe f
 - Rendering
     - Wireframe
     - Textures
+    - Direction Shader
 
 ## Showcase
 
